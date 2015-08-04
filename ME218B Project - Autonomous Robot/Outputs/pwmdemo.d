@@ -1,0 +1,13 @@
+.\outputs\pwmdemo.o: Source\PWMDemo.c
+.\outputs\pwmdemo.o: C:\Keil_v5\ARM\ARMCC\bin\..\include\stdio.h
+.\outputs\pwmdemo.o: C:\Keil_v5\ARM\ARMCC\bin\..\include\stdint.h
+.\outputs\pwmdemo.o: C:\ti\TivaWare_C_Series-2.1.0.12573\inc/hw_memmap.h
+.\outputs\pwmdemo.o: C:\ti\TivaWare_C_Series-2.1.0.12573\inc/hw_gpio.h
+.\outputs\pwmdemo.o: C:\ti\TivaWare_C_Series-2.1.0.12573\inc/hw_pwm.h
+.\outputs\pwmdemo.o: C:\ti\TivaWare_C_Series-2.1.0.12573\inc/hw_sysctl.h
+.\outputs\pwmdemo.o: C:\ti\TivaWare_C_Series-2.1.0.12573\inc/hw_types.h
+.\outputs\pwmdemo.o: .\Headers\bitdefs.h
+.\outputs\pwmdemo.o: .\Headers\FollowTape.h
+.\outputs\pwmdemo.o: .\Headers\ES_Types.h
+.\outputs\pwmdemo.o: C:\Keil_v5\ARM\ARMCC\bin\..\include\stdbool.h
+.\outputs\pwmdemo.o: .\Headers\PWMDemo.h
