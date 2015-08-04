@@ -1,0 +1,1723 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// uartstdio.c - Utility driver to provide simple UART console functions.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Copyright (c) {2}{0}{0}{7}-{2}{0}{1}{3} Texas Instruments Incorporated.  All rights reserved.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Software License Agreement}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Texas Instruments (TI) is supplying this software for use solely and}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// exclusively on TI's microcontroller products. The software is owned by}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// TI and/or its suppliers, and is protected under applicable copyright}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// laws. You may not combine this software with "viral" open-source}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// software in order to form a larger program.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// DAMAGES, FOR ANY REASON WHATSOEVER.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// This is part of revision {2}.{0}.{1}.{1}{1}{5}{7}{7} of the Tiva Utility Library.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdbool.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdarg.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_ints.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_uart.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/debug.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/interrupt.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/rom.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/rom_map.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/uart.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"utils/uartstdio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\addtogroup uartstdio_api}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! @\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// If buffered mode is defined, set aside RX and TX buffers and read/write}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// pointers to control them.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// This global controls whether or not we are echoing characters back to the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// transmitter.  By default, echo is enabled but if using this module as a}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// convenient method of implementing a buffered serial interface over which}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// you will be running an application protocol, you are likely to want to}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// disable echo by calling UARTEchoSet(false).}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static bool}} {\cf2{g_bDisableEcho}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Output ring buffer.  Buffer is full if g_ui{3}{2}UARTTxReadIndex is one ahead of}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// g_ui{3}{2}UARTTxWriteIndex.  Buffer is empty if the two indices are the same.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static unsigned char}} {\cf2{g_pcUARTTxBuffer}}{\cf11{[}}{\cf2{UART_TX_BUFFER_SIZE}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTTxWriteIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTTxReadIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Input ring buffer.  Buffer is full if g_ui{3}{2}UARTTxReadIndex is one ahead of}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// g_ui{3}{2}UARTTxWriteIndex.  Buffer is empty if the two indices are the same.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static unsigned char}} {\cf2{g_pcUARTRxBuffer}}{\cf11{[}}{\cf2{UART_RX_BUFFER_SIZE}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTRxWriteIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTRxReadIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Macros to determine number of free and used bytes in the transmit buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TX_BUFFER_USED          (GetBufferCount(&g_ui{3}{2}UARTTxReadIndex,  \\}}}\par\pard
+\cbpat1{{\cf8{                                                &g_ui{3}{2}UARTTxWriteIndex, \\}}}\par\pard
+\cbpat1{{\cf8{                                                UART_TX_BUFFER_SIZE))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TX_BUFFER_FREE          (UART_TX_BUFFER_SIZE - TX_BUFFER_USED)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TX_BUFFER_EMPTY         (IsBufferEmpty(&g_ui{3}{2}UARTTxReadIndex,   \\}}}\par\pard
+\cbpat1{{\cf8{                                               &g_ui{3}{2}UARTTxWriteIndex))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TX_BUFFER_FULL          (IsBufferFull(&g_ui{3}{2}UARTTxReadIndex,  \\}}}\par\pard
+\cbpat1{{\cf8{                                              &g_ui{3}{2}UARTTxWriteIndex, \\}}}\par\pard
+\cbpat1{{\cf8{                                              UART_TX_BUFFER_SIZE))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ADVANCE_TX_BUFFER_INDEX(Index) \\}}}\par\pard
+\cbpat1{{\cf8{                                (Index) = ((Index) + {1}) % UART_TX_BUFFER_SIZE}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Macros to determine number of free and used bytes in the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define RX_BUFFER_USED          (GetBufferCount(&g_ui{3}{2}UARTRxReadIndex,  \\}}}\par\pard
+\cbpat1{{\cf8{                                                &g_ui{3}{2}UARTRxWriteIndex, \\}}}\par\pard
+\cbpat1{{\cf8{                                                UART_RX_BUFFER_SIZE))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define RX_BUFFER_FREE          (UART_RX_BUFFER_SIZE - RX_BUFFER_USED)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define RX_BUFFER_EMPTY         (IsBufferEmpty(&g_ui{3}{2}UARTRxReadIndex,   \\}}}\par\pard
+\cbpat1{{\cf8{                                               &g_ui{3}{2}UARTRxWriteIndex))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define RX_BUFFER_FULL          (IsBufferFull(&g_ui{3}{2}UARTRxReadIndex,  \\}}}\par\pard
+\cbpat1{{\cf8{                                              &g_ui{3}{2}UARTRxWriteIndex, \\}}}\par\pard
+\cbpat1{{\cf8{                                              UART_RX_BUFFER_SIZE))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ADVANCE_RX_BUFFER_INDEX(Index) \\}}}\par\pard
+\cbpat1{{\cf8{                                (Index) = ((Index) + {1}) % UART_RX_BUFFER_SIZE}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The base address of the chosen UART.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{3}{2}_t}} {\cf2{g_ui{3}{2}Base}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// A mapping from an integer between {0} and {1}{5} to its ASCII character}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// equivalent.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static const char}} {\cf2{}}{\cf11{*}} {\cf2{}}{\cf14{const}} {\cf2{g_pcHex}} {\cf11{=}} {\cf2{}}{\cf3{"{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}abcdef"}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The list of possible base addresses for the console UART.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static const uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTBase}}{\cf11{[}}{\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{] =}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    UART{0}_BASE}}{\cf11{,}} {\cf2{UART{1}_BASE}}{\cf11{,}} {\cf2{UART{2}_BASE}}}\par\pard
+\cbpat1{{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The list of possible interrupts for the console UART.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static const uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTInt}}{\cf11{[}}{\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{] =}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    INT_UART{0}}}{\cf11{,}} {\cf2{INT_UART{1}}}{\cf11{,}} {\cf2{INT_UART{2}}}}\par\pard
+\cbpat1{{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The port number in use.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{3}{2}_t}} {\cf2{g_ui{3}{2}PortNum}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The list of UART peripherals.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static const uint{3}{2}_t}} {\cf2{g_ui{3}{2}UARTPeriph}}{\cf11{[}}{\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{] =}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    SYSCTL_PERIPH_UART{0}}}{\cf11{,}} {\cf2{SYSCTL_PERIPH_UART{1}}}{\cf11{,}} {\cf2{SYSCTL_PERIPH_UART{2}}}}\par\pard
+\cbpat1{{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Determines whether the ring buffer whose pointers and size are provided}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! is full or not.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pui{3}{2}Read points to the read index for the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pui{3}{2}Write points to the write index for the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}Size is the size of the buffer in bytes.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function is used to determine whether or not a given ring buffer is}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! full.  The structure of the code is specifically to ensure that we do not}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! see warnings from the compiler related to the order of volatile accesses}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! being undefined.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns \\b true if the buffer is full or \\b false otherwise.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static bool}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b IsBufferFull\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf11{*}}{\cf2{pui{3}{2}Read}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}             {\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf11{*}}{\cf2{pui{3}{2}Write}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Size}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Write}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Read}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{    ui{3}{2}Write}} {\cf11{= *}}{\cf2{pui{3}{2}Write}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Read}} {\cf11{= *}}{\cf2{pui{3}{2}Read}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf13{return}}{\cf2{}}{\cf11{((((}}{\cf2{ui{3}{2}Write}} {\cf11{+}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{) %}} {\cf2{ui{3}{2}Size}}{\cf11{) ==}} {\cf2{ui{3}{2}Read}}{\cf11{)}} {\cf2{?}} {\cf13{true}} {\cf2{}}{\cf11{:}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Determines whether the ring buffer whose pointers and size are provided}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! is empty or not.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pui{3}{2}Read points to the read index for the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pui{3}{2}Write points to the write index for the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function is used to determine whether or not a given ring buffer is}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! empty.  The structure of the code is specifically to ensure that we do not}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! see warnings from the compiler related to the order of volatile accesses}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! being undefined.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns \\b true if the buffer is empty or \\b false otherwise.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static bool}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b IsBufferEmpty\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf11{*}}{\cf2{pui{3}{2}Read}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}              {\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf11{*}}{\cf2{pui{3}{2}Write}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Write}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Read}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{    ui{3}{2}Write}} {\cf11{= *}}{\cf2{pui{3}{2}Write}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Read}} {\cf11{= *}}{\cf2{pui{3}{2}Read}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf13{return}}{\cf2{}}{\cf11{((}}{\cf2{ui{3}{2}Write}} {\cf11{==}} {\cf2{ui{3}{2}Read}}{\cf11{)}} {\cf2{?}} {\cf13{true}} {\cf2{}}{\cf11{:}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Determines the number of bytes of data contained in a ring buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pui{3}{2}Read points to the read index for the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pui{3}{2}Write points to the write index for the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}Size is the size of the buffer in bytes.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function is used to determine how many bytes of data a given ring}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffer currently contains.  The structure of the code is specifically to}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! ensure that we do not see warnings from the compiler related to the order}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! of volatile accesses being undefined.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns the number of bytes of data currently in the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{3}{2}_t}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b GetBufferCount\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf11{*}}{\cf2{pui{3}{2}Read}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}               {\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf11{*}}{\cf2{pui{3}{2}Write}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Size}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Write}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Read}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{    ui{3}{2}Write}} {\cf11{= *}}{\cf2{pui{3}{2}Write}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Read}} {\cf11{= *}}{\cf2{pui{3}{2}Read}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf13{return}}{\cf2{}}{\cf11{((}}{\cf2{ui{3}{2}Write}} {\cf11{>=}} {\cf2{ui{3}{2}Read}}{\cf11{)}} {\cf2{?}} {\cf11{(}}{\cf2{ui{3}{2}Write}} {\cf11{-}} {\cf2{ui{3}{2}Read}}{\cf11{) :}}}\par\pard
+\cbpat1{{\cf2{}}           {\cf11{(}}{\cf2{ui{3}{2}Size}} {\cf11{- (}}{\cf2{ui{3}{2}Read}} {\cf11{-}} {\cf2{ui{3}{2}Write}}{\cf11{)));}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Take as many bytes from the transmit buffer as we have space for and move}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// them into the UART transmit FIFO.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTPrimeTransmit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Base}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Do we have any data to transmit?}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{TX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Disable the UART interrupt.  If we don't do this there is a race}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// condition which can cause the read index to be corrupted.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b MAP_IntDisable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTInt}}{\cf11{[}}{\cf2{g_ui{3}{2}PortNum}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Yes - take some characters out of the transmit buffer and feed}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// them to the UART transmit FIFO.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b MAP_UARTSpaceAvail\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Base}}{\cf11{) && !}}{\cf2{TX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b MAP_UARTCharPutNonBlocking\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Base}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                      g_pcUARTTxBuffer}}{\cf11{[}}{\cf2{g_ui{3}{2}UARTTxReadIndex}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b ADVANCE_TX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTTxReadIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Reenable the UART interrupt.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b MAP_IntEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTInt}}{\cf11{[}}{\cf2{g_ui{3}{2}PortNum}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Configures the UART console.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}PortNum is the number of UART port to use for the serial console}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! ({0}-{2})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}Baud is the bit rate that the UART is to be configured to use.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}SrcClock is the frequency of the source clock for the UART}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! module.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function will configure the specified serial port to be used as a}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! serial console.  The serial parameters are set to the baud rate}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! specified by the \\e ui{3}{2}Baud parameter and use {8} bit, no parity, and {1} stop}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! bit.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function must be called prior to using any of the other UART console}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! functions: UARTprintf() or UARTgets().  This function assumes that the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! caller has previously configured the relevant UART pins for operation as a}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! UART rather than as GPIOs.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTStdioConfig\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}PortNum}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Baud}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}SrcClock}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check the arguments.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{((}}{\cf2{ui{3}{2}PortNum}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) || (}}{\cf2{ui{3}{2}PortNum}} {\cf11{==}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{) ||}}}\par\pard
+\cbpat1{{\cf2{}}           {\cf11{(}}{\cf2{ui{3}{2}PortNum}} {\cf11{==}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{));}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// In buffered mode, we only allow a single instance to be opened.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check to make sure the UART peripheral is present.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{}}{\cf16{\b MAP_SysCtlPeripheralPresent\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTPeriph}}{\cf11{[}}{\cf2{ui{3}{2}PortNum}}{\cf11{]))}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{return}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Select the base address of the UART.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    g_ui{3}{2}Base}} {\cf11{=}} {\cf2{g_ui{3}{2}UARTBase}}{\cf11{[}}{\cf2{ui{3}{2}PortNum}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Enable the UART peripheral for use.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_SysCtlPeripheralEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTPeriph}}{\cf11{[}}{\cf2{ui{3}{2}PortNum}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Configure the UART for {1}{1}{5}{2}{0}{0}, n, {8}, {1}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_UARTConfigSetExpClk\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{ui{3}{2}SrcClock}}{\cf11{,}} {\cf2{ui{3}{2}Baud}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                            {\cf11{(}}{\cf2{UART_CONFIG_PAR_NONE}} {\cf11{|}} {\cf2{UART_CONFIG_STOP_ONE}} {\cf11{|}}}\par\pard
+\cbpat1{{\cf2{                             UART_CONFIG_WLEN_{8}}}{\cf11{));}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Set the UART to interrupt whenever the TX FIFO is almost empty or}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// when any character is received.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_UARTFIFOLevelSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{UART_FIFO_TX{1}_{8}}}{\cf11{,}} {\cf2{UART_FIFO_RX{1}_{8}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Flush both the buffers.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b UARTFlushRx\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b UARTFlushTx\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Remember which interrupt we are dealing with.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    g_ui{3}{2}PortNum}} {\cf11{=}} {\cf2{ui{3}{2}PortNum}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// We are configured for buffered output so enable the master interrupt}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// for this UART and the receive interrupts.  We don't actually enable the}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// transmit interrupt in the UART itself until some data has been placed}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// in the transmit buffer.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_UARTIntDisable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{}}{\cf4{{0}xFFFFFFFF}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_UARTIntEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{UART_INT_RX}} {\cf11{|}} {\cf2{UART_INT_RT}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_IntEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTInt}}{\cf11{[}}{\cf2{ui{3}{2}PortNum}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Enable the UART operation.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_UARTEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Writes a string of characters to the UART output.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pcBuf points to a buffer containing the string to transmit.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}Len is the length of the string to transmit.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function will transmit the string to the UART output.  The number of}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters transmitted is determined by the \\e ui{3}{2}Len parameter.  This}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! function does no interpretation or translation of any characters.  Since}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the output is sent to a UART, any LF (/n) characters encountered will be}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! replaced with a CRLF pair.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Besides using the \\e ui{3}{2}Len parameter to stop transmitting the string, if}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! a null character ({0}) is encountered, then no more characters will be}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! transmitted and the function will return.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! In non-buffered mode, this function is blocking and will not return until}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! all the characters have been written to the output FIFO.  In buffered mode,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the characters are written to the UART transmit buffer and the call returns}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! immediately.  If insufficient space remains in the transmit buffer,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! additional characters are discarded.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns the count of characters written.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{pcBuf}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Len}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{unsigned int}} {\cf2{uIdx}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check for valid arguments.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Send the characters}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{uIdx}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{uIdx}} {\cf11{<}} {\cf2{ui{3}{2}Len}}{\cf11{;}} {\cf2{uIdx}}{\cf11{++)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// If the character to the UART is \\n, then add a \\r before it so that}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// \\n is translated to \\n\\r in the output.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}}{\cf11{[}}{\cf2{uIdx}}{\cf11{] ==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{TX_BUFFER_FULL}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                g_pcUARTTxBuffer}}{\cf11{[}}{\cf2{g_ui{3}{2}UARTTxWriteIndex}}{\cf11{] =}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf16{\b ADVANCE_TX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTTxWriteIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Buffer is full - discard remaining characters and return.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Send the character to the UART output.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{TX_BUFFER_FULL}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{            g_pcUARTTxBuffer}}{\cf11{[}}{\cf2{g_ui{3}{2}UARTTxWriteIndex}}{\cf11{] =}} {\cf2{pcBuf}}{\cf11{[}}{\cf2{uIdx}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b ADVANCE_TX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTTxWriteIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Buffer is full - discard remaining characters and return.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// If we have anything in the buffer, make sure that the UART is set}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// up to transmit it.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{TX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b UARTPrimeTransmit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b MAP_UARTIntEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{UART_INT_TX}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Return the number of characters written.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{uIdx}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#else}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{unsigned int}} {\cf2{uIdx}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check for valid UART base address, and valid arguments.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Send the characters}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{uIdx}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{uIdx}} {\cf11{<}} {\cf2{ui{3}{2}Len}}{\cf11{;}} {\cf2{uIdx}}{\cf11{++)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// If the character to the UART is \\n, then add a \\r before it so that}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// \\n is translated to \\n\\r in the output.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}}{\cf11{[}}{\cf2{uIdx}}{\cf11{] ==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b MAP_UARTCharPut\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Send the character to the UART output.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b MAP_UARTCharPut\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{pcBuf}}{\cf11{[}}{\cf2{uIdx}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Return the number of characters written.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{uIdx}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! A simple UART based get string function, with some line processing.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pcBuf points to a buffer for the incoming string from the UART.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ui{3}{2}Len is the length of the buffer for storage of the string,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! including the trailing {0}.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function will receive a string from the UART input and store the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters in the buffer pointed to by \\e pcBuf.  The characters will}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! continue to be stored until a termination character is received.  The}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! termination characters are CR, LF, or ESC.  A CRLF pair is treated as a}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! single termination character.  The termination characters are not stored in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the string.  The string will be terminated with a {0} and the function will}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! return.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! In both buffered and unbuffered modes, this function will block until}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! a termination character is received.  If non-blocking operation is required}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! in buffered mode, a call to UARTPeek() may be made to determine whether}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! a termination character already exists in the receive buffer prior to}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! calling UARTgets().}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Since the string will be null terminated, the user must ensure that the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffer is sized to allow for the additional null character.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns the count of characters that were stored, not including}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the trailing {0}.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTgets\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{char}} {\cf2{}}{\cf11{*}}{\cf2{pcBuf}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Len}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Count}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{int{8}_t}} {\cf2{cChar}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check the arguments.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Len}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Adjust the length back by {1} to leave space for the trailing}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// null terminator.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Len}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Process characters until a newline is received.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Read the next character from the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{RX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{            cChar}} {\cf11{=}} {\cf2{g_pcUARTRxBuffer}}{\cf11{[}}{\cf2{g_ui{3}{2}UARTRxReadIndex}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b ADVANCE_RX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTRxReadIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// See if a newline or escape character was received.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{) || (}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{) || (}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf4{{0}x{1}b}}{\cf2{}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Stop processing the input and end the line.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Process the received character as long as we are not at the end}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// of the buffer.  If the end of the buffer has been reached then}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// all additional characters are ignored until a newline is}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// received.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}} {\cf11{<}} {\cf2{ui{3}{2}Len}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Store the character in the caller supplied buffer.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Count}}{\cf11{] =}} {\cf2{cChar}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Increment the count of characters received.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                ui{3}{2}Count}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Add a null termination to the string.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Count}}{\cf11{] =}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Return the count of int{8}_ts in the buffer, not counting the trailing {0}.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#else}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Count}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{int{8}_t}} {\cf2{cChar}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{static int{8}_t}} {\cf2{bLastWasCR}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check the arguments.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Len}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Adjust the length back by {1} to leave space for the trailing}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// null terminator.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Len}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Process characters until a newline is received.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Read the next character from the console.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{        cChar}} {\cf11{=}} {\cf2{}}{\cf16{\b MAP_UARTCharGet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// See if the backspace key was pressed.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\b}}{\cf3{'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// If there are any characters already in the buffer, then delete}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// the last.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Rub out the previous character.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\b \\b}}{\cf3{"}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Decrement the number of characters in the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                ui{3}{2}Count}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Skip ahead to read the next character.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{continue}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// If this character is LF and last was CR, then just gobble up the}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// character because the EOL processing was taken care of with the CR.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{) &&}} {\cf2{bLastWasCR}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{            bLastWasCR}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{continue}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// See if a newline or escape character was received.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{) || (}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{) || (}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf4{{0}x{1}b}}{\cf2{}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// If the character is a CR, then it may be followed by a LF which}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// should be paired with the CR.  So remember that a CR was}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// received.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                bLastWasCR}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Stop processing the input and end the line.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Process the received character as long as we are not at the end of}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// the buffer.  If the end of the buffer has been reached then all}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// additional characters are ignored until a newline is received.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}} {\cf11{<}} {\cf2{ui{3}{2}Len}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Store the character in the caller supplied buffer.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{            pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Count}}{\cf11{] =}} {\cf2{cChar}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Increment the count of characters received.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{            ui{3}{2}Count}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Reflect the character back to the user.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b MAP_UARTCharPut\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{cChar}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Add a null termination to the string.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Count}}{\cf11{] =}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Send a CRLF pair to the terminal to end the line.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Return the count of int{8}_ts in the buffer, not counting the trailing {0}.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Read a single character from the UART, blocking if necessary.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function will receive a single character from the UART and store it at}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the supplied address.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! In both buffered and unbuffered modes, this function will block until a}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! character is received.  If non-blocking operation is required in buffered}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! mode, a call to UARTRxAvail() may be made to determine whether any}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters are currently available for reading.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns the character read.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{unsigned char}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTgetc\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{unsigned char}} {\cf2{cChar}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Wait for a character to be received.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{RX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Block waiting for a character to be received (if the buffer is}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// currently empty).}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Read a character from the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    cChar}} {\cf11{=}} {\cf2{g_pcUARTRxBuffer}}{\cf11{[}}{\cf2{g_ui{3}{2}UARTRxReadIndex}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ADVANCE_RX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTRxReadIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Return the character to the caller.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{cChar}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#else}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Block until a character is received by the UART then return it to}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// the caller.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b MAP_UARTCharGet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{));}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! A simple UART based vprintf function supporting \\%c, \\%d, \\%p, \\%s, \\%u,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\%x, and \\%X.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pcString is the format string.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param vaArgP is a variable argument list pointer whose content will depend}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! upon the format string passed in \\e pcString.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function is very similar to the C library <tt>vprintf()</tt> function.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! All of its output will be sent to the UART.  Only the following formatting}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters are supported:}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%c to print a character}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%d or \\%i to print a decimal value}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%s to print a string}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%u to print an unsigned decimal value}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%x to print a hexadecimal value using lower case letters}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%X to print a hexadecimal value using lower case letters (not upper case}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! letters as would typically be used)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%p to print a pointer as a hexadecimal value}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%\\% to print out a \\% character}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! For \\%s, \\%d, \\%i, \\%u, \\%p, \\%x, and \\%X, an optional number may reside}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! between the \\% and the format character, which specifies the minimum number}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! of characters to use for that value; if preceded by a {0} then the extra}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters will be filled with zeros instead of spaces.  For example,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! ``\\%{8}d'' will use eight characters to print the decimal value with spaces}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! added to reach eight; ``\\%{0}{8}d'' will use eight characters as well but will}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! add zeroes instead of spaces.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! The type of the arguments in the variable arguments list must match the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! requirements of the format string.  For example, if an integer was passed}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! where a string was expected, an error of some kind will most likely occur.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTvprintf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{pcString}}{\cf11{,}} {\cf2{}}{\cf14{va_list}} {\cf2{vaArgP}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Idx}}{\cf11{,}} {\cf2{ui{3}{2}Value}}{\cf11{,}} {\cf2{ui{3}{2}Pos}}{\cf11{,}} {\cf2{ui{3}{2}Count}}{\cf11{,}} {\cf2{ui{3}{2}Base}}{\cf11{,}} {\cf2{ui{3}{2}Neg}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{char}} {\cf2{}}{\cf11{*}}{\cf2{pcStr}}{\cf11{,}} {\cf2{pcBuf}}{\cf11{[}}{\cf2{}}{\cf4{{1}{6}}}{\cf2{}}{\cf11{],}} {\cf2{cFill}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check the arguments.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ASSERT\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcString}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Loop while there are more characters in the string.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{while}}{\cf2{}}{\cf11{(*}}{\cf2{pcString}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Find the first non-% character, or the end of the string.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Idx}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{(}}{\cf2{pcString}}{\cf11{[}}{\cf2{ui{3}{2}Idx}}{\cf11{] !=}} {\cf2{}}{\cf3{'%'}}{\cf2{}}{\cf11{) && (}}{\cf2{pcString}}{\cf11{[}}{\cf2{ui{3}{2}Idx}}{\cf11{] !=}} {\cf2{}}{\cf3{'\\{0}'}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{            ui{3}{2}Idx}}{\cf11{++)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Write this portion of the string.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcString}}{\cf11{,}} {\cf2{ui{3}{2}Idx}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Skip the portion of the string that was written.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{        pcString}} {\cf11{+=}} {\cf2{ui{3}{2}Idx}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// See if the next character is a %.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(*}}{\cf2{pcString}} {\cf11{==}} {\cf2{}}{\cf3{'%'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Skip the %.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{            pcString}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Set the digit count to zero, and the fill character to space}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// (in other words, to the defaults).}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{            ui{3}{2}Count}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{            cFill}} {\cf11{=}} {\cf2{}}{\cf3{' '}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// It may be necessary to get back here to process more characters.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Goto's aren't pretty, but effective.  I feel extremely dirty for}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// using not one but two of the beasts.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{again}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Determine how to handle the next character.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{switch}}{\cf2{}}{\cf11{(*}}{\cf2{pcString}}{\cf11{++)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the digit characters.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{0}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{1}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{2}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{3}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{4}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{5}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{6}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{7}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{8}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'{9}'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If this is a zero, and it is the first digit, then the}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// fill character is a zero instead of a space.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{pcString}}{\cf11{[-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{] ==}} {\cf2{}}{\cf3{'{0}'}}{\cf2{}}{\cf11{) && (}}{\cf2{ui{3}{2}Count}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                        cFill}} {\cf11{=}} {\cf2{}}{\cf3{'{0}'}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Update the digit count.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Count}} {\cf11{*=}} {\cf2{}}{\cf4{{1}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Count}} {\cf11{+=}} {\cf2{pcString}}{\cf11{[-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{] -}} {\cf2{}}{\cf3{'{0}'}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Get the next character.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{goto}} {\cf2{again}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the %c command.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'c'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Get the value from the varargs.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Value}} {\cf11{=}} {\cf2{}}{\cf16{\b va_arg\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Print out the character.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{((}}{\cf2{}}{\cf14{char}} {\cf2{}}{\cf11{*)&}}{\cf2{ui{3}{2}Value}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// This command has been handled.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the %d and %i commands.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'d'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'i'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Get the value from the varargs.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Value}} {\cf11{=}} {\cf2{}}{\cf16{\b va_arg\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Reset the buffer position.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Pos}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If the value is negative, make it positive and indicate}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// that a minus sign is needed.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{}}{\cf14{int{3}{2}_t}}{\cf2{}}{\cf11{)}}{\cf2{ui{3}{2}Value}} {\cf11{<}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Make the value positive.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Value}} {\cf11{= -(}}{\cf2{}}{\cf14{int{3}{2}_t}}{\cf2{}}{\cf11{)}}{\cf2{ui{3}{2}Value}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Indicate that the value is negative.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Neg}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Indicate that the value is positive so that a minus}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// sign isn't inserted.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Neg}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Set the base to {1}{0}.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Base}} {\cf11{=}} {\cf2{}}{\cf4{{1}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Convert the value to ASCII.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{goto}} {\cf2{convert}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the %s command.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'s'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Get the string pointer from the varargs.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    pcStr}} {\cf11{=}} {\cf2{}}{\cf16{\b va_arg\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{,}} {\cf2{}}{\cf14{char}} {\cf2{}}{\cf11{*);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Determine the length of the string.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Idx}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{pcStr}}{\cf11{[}}{\cf2{ui{3}{2}Idx}}{\cf11{] !=}} {\cf2{}}{\cf3{'\\{0}'}}{\cf2{}}{\cf11{;}} {\cf2{ui{3}{2}Idx}}{\cf11{++)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Write the string.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcStr}}{\cf11{,}} {\cf2{ui{3}{2}Idx}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Write any required padding spaces}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}} {\cf11{>}} {\cf2{ui{3}{2}Idx}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Count}} {\cf11{-=}} {\cf2{ui{3}{2}Idx}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}}{\cf11{--)}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                            {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{" "}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// This command has been handled.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the %u command.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'u'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Get the value from the varargs.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Value}} {\cf11{=}} {\cf2{}}{\cf16{\b va_arg\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Reset the buffer position.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Pos}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Set the base to {1}{0}.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Base}} {\cf11{=}} {\cf2{}}{\cf4{{1}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Indicate that the value is positive so that a minus sign}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// isn't inserted.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Neg}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Convert the value to ASCII.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{goto}} {\cf2{convert}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the %x and %X commands.  Note that they are treated}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// identically; in other words, %X will use lower case letters}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// for a-f instead of the upper case letters it should use.  We}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// also alias %p to %x.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'x'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'X'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'p'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Get the value from the varargs.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Value}} {\cf11{=}} {\cf2{}}{\cf16{\b va_arg\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Reset the buffer position.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Pos}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Set the base to {1}{6}.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Base}} {\cf11{=}} {\cf2{}}{\cf4{{1}{6}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Indicate that the value is positive so that a minus sign}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// isn't inserted.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    ui{3}{2}Neg}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Determine the number of digits in the string version of}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// the value.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{convert}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Idx}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{(((}}{\cf2{ui{3}{2}Idx}} {\cf11{*}} {\cf2{ui{3}{2}Base}}{\cf11{) <=}} {\cf2{ui{3}{2}Value}}{\cf11{) &&}}}\par\pard
+\cbpat1{{\cf2{}}                         {\cf11{(((}}{\cf2{ui{3}{2}Idx}} {\cf11{*}} {\cf2{ui{3}{2}Base}}{\cf11{) /}} {\cf2{ui{3}{2}Base}}{\cf11{) ==}} {\cf2{ui{3}{2}Idx}}{\cf11{));}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Idx}} {\cf11{*=}} {\cf2{ui{3}{2}Base}}{\cf11{,}} {\cf2{ui{3}{2}Count}}{\cf11{--)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If the value is negative, reduce the count of padding}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// characters needed.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Neg}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Count}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If the value is negative and the value is padded with}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// zeros, then place the minus sign before the padding.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Neg}} {\cf11{&& (}}{\cf2{cFill}} {\cf11{==}} {\cf2{}}{\cf3{'{0}'}}{\cf2{}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Place the minus sign in the output buffer.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                        pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Pos}}{\cf11{++] =}} {\cf2{}}{\cf3{'-'}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// The minus sign has been placed, so turn off the}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// negative flag.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                        ui{3}{2}Neg}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Provide additional padding at the beginning of the}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// string conversion if needed.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{ui{3}{2}Count}} {\cf11{>}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{) && (}}{\cf2{ui{3}{2}Count}} {\cf11{<}} {\cf2{}}{\cf4{{1}{6}}}{\cf2{}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Count}}{\cf11{--;}} {\cf2{ui{3}{2}Count}}{\cf11{;}} {\cf2{ui{3}{2}Count}}{\cf11{--)}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                            pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Pos}}{\cf11{++] =}} {\cf2{cFill}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If the value is negative, then place the minus sign}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// before the number.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Neg}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Place the minus sign in the output buffer.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                        pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Pos}}{\cf11{++] =}} {\cf2{}}{\cf3{'-'}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Convert the value into a string.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{for}}{\cf2{}}{\cf11{(;}} {\cf2{ui{3}{2}Idx}}{\cf11{;}} {\cf2{ui{3}{2}Idx}} {\cf11{/=}} {\cf2{ui{3}{2}Base}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                        pcBuf}}{\cf11{[}}{\cf2{ui{3}{2}Pos}}{\cf11{++] =}}}\par\pard
+\cbpat1{{\cf2{                            g_pcHex}}{\cf11{[(}}{\cf2{ui{3}{2}Value}} {\cf11{/}} {\cf2{ui{3}{2}Idx}}{\cf11{) %}} {\cf2{ui{3}{2}Base}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Write the string.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcBuf}}{\cf11{,}} {\cf2{ui{3}{2}Pos}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// This command has been handled.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle the %% command.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{case}} {\cf2{}}{\cf3{'%'}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Simply write a single %.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcString}} {\cf11{-}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// This command has been handled.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle all other commands.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{default}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Indicate an error.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"ERROR"}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{5}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// This command has been handled.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! A simple UART based printf function supporting \\%c, \\%d, \\%p, \\%s, \\%u,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\%x, and \\%X.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param pcString is the format string.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ... are the optional arguments, which depend on the contents of the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! format string.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function is very similar to the C library <tt>fprintf()</tt> function.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! All of its output will be sent to the UART.  Only the following formatting}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters are supported:}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%c to print a character}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%d or \\%i to print a decimal value}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%s to print a string}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%u to print an unsigned decimal value}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%x to print a hexadecimal value using lower case letters}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%X to print a hexadecimal value using lower case letters (not upper case}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! letters as would typically be used)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%p to print a pointer as a hexadecimal value}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! - \\%\\% to print out a \\% character}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! For \\%s, \\%d, \\%i, \\%u, \\%p, \\%x, and \\%X, an optional number may reside}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! between the \\% and the format character, which specifies the minimum number}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! of characters to use for that value; if preceded by a {0} then the extra}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! characters will be filled with zeros instead of spaces.  For example,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! ``\\%{8}d'' will use eight characters to print the decimal value with spaces}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! added to reach eight; ``\\%{0}{8}d'' will use eight characters as well but will}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! add zeroes instead of spaces.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! The type of the arguments after \\e pcString must match the requirements of}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the format string.  For example, if an integer was passed where a string}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! was expected, an error of some kind will most likely occur.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTprintf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{pcString}}{\cf11{, ...)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{va_list}} {\cf2{vaArgP}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Start the varargs processing.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b va_start\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{,}} {\cf2{pcString}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf16{\b UARTvprintf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{pcString}}{\cf11{,}} {\cf2{vaArgP}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// We're finished with the varargs now.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b va_end\b0 }}{\cf2{}}{\cf11{(}}{\cf2{vaArgP}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Returns the number of bytes available in the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function, available only when the module is built to operate in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffered mode using \\b UART_BUFFERED, may be used to determine the number}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! of bytes of data currently available in the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns the number of available bytes.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTRxBytesAvail\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{RX_BUFFER_USED}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Returns the number of bytes free in the transmit buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function, available only when the module is built to operate in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffered mode using \\b UART_BUFFERED, may be used to determine the amount}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! of space currently available in the transmit buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns the number of free bytes.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTTxBytesFree\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{TX_BUFFER_FREE}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Looks ahead in the receive buffer for a particular character.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param ucChar is the character that is to be searched for.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function, available only when the module is built to operate in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffered mode using \\b UART_BUFFERED, may be used to look ahead in the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! receive buffer for a particular character and report its position if found.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! It is typically used to determine whether a complete line of user input is}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! available, in which case ucChar should be set to CR ('\\\\r') which is used}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! as the line end marker in the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return Returns -{1} to indicate that the requested character does not exist}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! in the receive buffer.  Returns a non-negative number if the character was}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! found in which case the value represents the position of the first instance}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! of \\e ucChar relative to the receive buffer read pointer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTPeek\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{unsigned char}} {\cf2{ucChar}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{int}} {\cf2{iCount}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{int}} {\cf2{iAvail}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}ReadIndex}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// How many characters are there in the receive buffer?}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    iAvail}} {\cf11{= (}}{\cf2{}}{\cf14{int}}{\cf2{}}{\cf11{)}}{\cf2{RX_BUFFER_USED}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}ReadIndex}} {\cf11{=}} {\cf2{g_ui{3}{2}UARTRxReadIndex}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check all the unread characters looking for the one passed.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{iCount}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{iCount}} {\cf11{<}} {\cf2{iAvail}}{\cf11{;}} {\cf2{iCount}}{\cf11{++)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{g_pcUARTRxBuffer}}{\cf11{[}}{\cf2{ui{3}{2}ReadIndex}}{\cf11{] ==}} {\cf2{ucChar}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// We found it so return the index}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{iCount}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// This one didn't match so move on to the next character.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b ADVANCE_RX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}ReadIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// If we drop out of the loop, we didn't find the character in the receive}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// buffer.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Flushes the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function, available only when the module is built to operate in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffered mode using \\b UART_BUFFERED, may be used to discard any data}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! received from the UART but not yet read using UARTgets().}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTFlushRx\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Int}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Temporarily turn off interrupts.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Int}} {\cf11{=}} {\cf2{}}{\cf16{\b MAP_IntMasterDisable\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Flush the receive buffer.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    g_ui{3}{2}UARTRxReadIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    g_ui{3}{2}UARTRxWriteIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// If interrupts were enabled when we turned them off, turn them}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// back on again.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{ui{3}{2}Int}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b MAP_IntMasterEnable\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Flushes the transmit buffer.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param bDiscard indicates whether any remaining data in the buffer should}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! be discarded (\\b true) or transmitted (\\b false).}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function, available only when the module is built to operate in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffered mode using \\b UART_BUFFERED, may be used to flush the transmit}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffer, either discarding or transmitting any data received via calls to}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! UARTprintf() that is waiting to be transmitted.  On return, the transmit}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffer will be empty.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTFlushTx\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{bool}} {\cf2{bDiscard}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Int}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Should the remaining data be discarded or transmitted?}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{bDiscard}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// The remaining data should be discarded, so temporarily turn off}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// interrupts.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{        ui{3}{2}Int}} {\cf11{=}} {\cf2{}}{\cf16{\b MAP_IntMasterDisable\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Flush the transmit buffer.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{        g_ui{3}{2}UARTTxReadIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{        g_ui{3}{2}UARTTxWriteIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// If interrupts were enabled when we turned them off, turn them}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// back on again.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{ui{3}{2}Int}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b MAP_IntMasterEnable\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Wait for all remaining data to be transmitted before returning.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{while}}{\cf2{}}{\cf11{(!}}{\cf2{TX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Enables or disables echoing of received characters to the transmitter.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\param bEnable must be set to \\b true to enable echo or \\b false to}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! disable it.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function, available only when the module is built to operate in}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! buffered mode using \\b UART_BUFFERED, may be used to control whether or not}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! received characters are automatically echoed back to the transmitter.  By}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! default, echo is enabled and this is typically the desired behavior if}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! the module is being used to support a serial command line.  In applications}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! where this module is being used to provide a convenient, buffered serial}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! interface over which application-specific binary protocols are being run,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! however, echo may be undesirable and this function can be used to disable}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! it.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTEchoSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{bool}} {\cf2{bEnable}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    g_bDisableEcho}} {\cf11{= !}}{\cf2{bEnable}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! Handles UART interrupts.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! This function handles interrupts from the UART.  It will copy data from the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! transmit buffer to the UART transmit FIFO if space is available, and it}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! will copy data from the UART receive FIFO to the receive buffer if data is}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! available.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//!}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! \\return None.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if defined(UART_BUFFERED) || defined(DOXYGEN)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}}\par\pard
+\cbpat1{{\cf2{}}{\cf16{\b UARTStdioIntHandler\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Ints}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{int{8}_t}} {\cf2{cChar}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{int{3}{2}_t}} {\cf2{i{3}{2}Char}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{static bool}} {\cf2{bLastWasCR}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Get and clear the current interrupt source(s)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{    ui{3}{2}Ints}} {\cf11{=}} {\cf2{}}{\cf16{\b MAP_UARTIntStatus\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b MAP_UARTIntClear\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{ui{3}{2}Ints}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Are we being interrupted because the TX FIFO has space available?}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Ints}} {\cf11{&}} {\cf2{UART_INT_TX}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Move as many bytes as we can into the transmit FIFO.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b UARTPrimeTransmit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// If the output buffer is empty, turn off the transmit interrupt.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{TX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf16{\b MAP_UARTIntDisable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{UART_INT_TX}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Are we being interrupted due to a received character?}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ui{3}{2}Ints}} {\cf11{& (}}{\cf2{UART_INT_RX}} {\cf11{|}} {\cf2{UART_INT_RT}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// Get all the available characters from the UART.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b MAP_UARTCharsAvail\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// Read a character}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{            i{3}{2}Char}} {\cf11{=}} {\cf2{}}{\cf16{\b MAP_UARTCharGetNonBlocking\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{            cChar}} {\cf11{= (}}{\cf2{}}{\cf14{unsigned char}}{\cf2{}}{\cf11{)(}}{\cf2{i{3}{2}Char}} {\cf11{&}} {\cf2{}}{\cf4{{0}xFF}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// If echo is disabled, we skip the various text filtering}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// operations that would typically be required when supporting a}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// command line.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{g_bDisableEcho}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Handle backspace by erasing the last character in the}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// buffer.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\b}}{\cf3{'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If there are any characters already in the buffer, then}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// delete the last.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{RX_BUFFER_EMPTY}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Rub out the previous character on the users}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// terminal.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\b \\b}}{\cf3{"}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{// Decrement the number of characters in the buffer.}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTRxWriteIndex}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                            g_ui{3}{2}UARTRxWriteIndex}} {\cf11{=}} {\cf2{UART_RX_BUFFER_SIZE}} {\cf11{-}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                            g_ui{3}{2}UARTRxWriteIndex}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}                        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Skip ahead to read the next character.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{continue}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// If this character is LF and last was CR, then just gobble up}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// the character since we already echoed the previous CR and we}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// don't want to store {2} characters in the buffer if we don't}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// need to.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{) &&}} {\cf2{bLastWasCR}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                    bLastWasCR}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{continue}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// See if a newline or escape character was received.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{) || (}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\n}}{\cf3{'}}{\cf2{}}{\cf11{) || (}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf4{{0}x{1}b}}{\cf2{}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// If the character is a CR, then it may be followed by an}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// LF which should be paired with the CR.  So remember that}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// a CR was received.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{cChar}} {\cf11{==}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{                        bLastWasCR}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// Regardless of the line termination character received,}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// put a CR in the receive buffer as a marker telling}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// UARTgets() where the line ends.  We also send an}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// additional LF to ensure that the local terminal echo}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{// receives both CR and LF.}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                    cChar}} {\cf11{=}} {\cf2{}}{\cf3{'}}{\cf7{\\r}}{\cf3{'}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// If there is space in the receive buffer, put the character}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{// there, otherwise throw it away.}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{RX_BUFFER_FULL}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// Store the new character in the receive buffer}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{                g_pcUARTRxBuffer}}{\cf11{[}}{\cf2{g_ui{3}{2}UARTRxWriteIndex}}{\cf11{] =}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf11{(}}{\cf2{}}{\cf14{unsigned char}}{\cf2{}}{\cf11{)(}}{\cf2{i{3}{2}Char}} {\cf11{&}} {\cf2{}}{\cf4{{0}xFF}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf16{\b ADVANCE_RX_BUFFER_INDEX\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}UARTRxWriteIndex}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// If echo is enabled, write the character to the transmit}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{// buffer so that the user gets some immediate feedback.}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf13{if}}{\cf2{}}{\cf11{(!}}{\cf2{g_bDisableEcho}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}                    {\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{((}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*)&}}{\cf2{cChar}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}                {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}            {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// If we wrote anything to the transmit buffer, make sure it actually}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{// gets transmitted.}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b UARTPrimeTransmit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b MAP_UARTIntEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{g_ui{3}{2}Base}}{\cf11{,}} {\cf2{UART_INT_TX}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Close the Doxygen group.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//! @\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}{\cf2{}}}\par\pard
+\cbpat1{}}

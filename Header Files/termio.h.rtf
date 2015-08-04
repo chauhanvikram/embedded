@@ -1,0 +1,60 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{ * termio.h}}}\par\pard
+\cbpat1{{\cf6{ *}}}\par\pard
+\cbpat1{{\cf6{ *  Created on: Feb {2}{5}, {2}{0}{1}{4}}}}\par\pard
+\cbpat1{{\cf6{ *      Author: John Alabi}}}\par\pard
+\cbpat1{{\cf6{ */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#ifndef TERMIO_H_}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TERMIO_H_}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef __cplusplus}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf3{"C"}}{\cf2{}} {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdlib.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"utils/uartstdio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//#if defined(ccs)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//#define printf	UARTprintf}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//#define puts	UARTprintf}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* receives character from the terminal channel - BLOCKING */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{unsigned char}} {\cf2{}}{\cf16{\b TERMIO_GetChar\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* sends a character to the terminal channel}}}\par\pard
+\cbpat1{{\cf6{   wait for output buffer empty */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b TERMIO_PutChar\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{unsigned char}} {\cf2{ch}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* initializes the communication channel */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* set baud rate to {1}{1}{5}.{2} kbaud and turn on Rx and Tx */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b TERMIO_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/* checks for a character from the terminal channel */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{int}} {\cf2{}}{\cf16{\b kbhit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#if defined(ccs)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <file.h>}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{int}} {\cf2{}}{\cf16{\b uart_open\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{path}}{\cf11{,}} {\cf2{}}{\cf14{unsigned}} {\cf2{flags}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{llv_fd}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b uart_close\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{dev_fd}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b uart_read\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{dev_fd}}{\cf11{,}} {\cf2{}}{\cf14{char}} {\cf2{}}{\cf11{*}}{\cf2{buf}}{\cf11{,}} {\cf2{}}{\cf14{unsigned}} {\cf2{count}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b uart_write\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{dev_fd}}{\cf11{,}} {\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{buf}}{\cf11{,}} {\cf2{}}{\cf14{unsigned}} {\cf2{count}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{off_t}} {\cf16{\b uart_lseek\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{dev_fd}}{\cf11{,}} {\cf2{off_t offset}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{origin}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b uart_unlink\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{path}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b uart_rename\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}} {\cf2{old_name}}{\cf11{,}} {\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}} {\cf2{new_name}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{int}} {\cf2{}}{\cf16{\b mapStdioToUart\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef __cplusplus}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}} {\cf6{/* TERMIO_H_ */}}{\cf8{}}{\cf2{}}}\par\pard
+\cbpat1{}}

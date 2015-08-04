@@ -1,0 +1,421 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{     EF_Framework.c}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     source file for the core functions of the Events & Services framework}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     }}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {1}{1}/{0}{2}/{1}{3} {1}{7}:{0}{5} jec      added PostToServiceLIFO function}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{1}/{1}{3} {1}{7}:{5}{0} jec      added entries to expand number of possible services to }}}\par\pard
+\cbpat1{{\cf6{                         {1}{6}}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{1}{3}/{1}{3} {1}{2}:{5}{9} jec      re-structured ES_Run() slightly to call hardware}}}\par\pard
+\cbpat1{{\cf6{                         specific routine to process pending interrupts. This}}}\par\pard
+\cbpat1{{\cf6{                         removes the need for re-entrant code and critial}}}\par\pard
+\cbpat1{{\cf6{                         regions in the queue code.}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{6}/{1}{3} {1}{4}:{5}{0} jec      removed references to PostKeyFunc. We moved that out}}}\par\pard
+\cbpat1{{\cf6{                         of the framework into the EventCheckers module}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{3}{0}/{1}{2} {1}{9}:{3}{1} jec      moved call to ES_InitTimers into the ES_Initialize}}}\par\pard
+\cbpat1{{\cf6{                         this required adding a parameter to ES_Initialize.}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {1}{2}:{1}{5} jec      major revision for Gen{2}}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{1}{7}/{1}{1} {1}{2}:{2}{4} jec      started coding}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Include Files -----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Framework.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Queue.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_LookupTables.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// Include the header files for the Service modules.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// This gets you the prototypes for the public service functions.}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_ServiceHeaders.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Module Defines ----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{}}{\cf14{bool}} {\cf2{}}{\cf16{\b InitFunc_t\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{Priority}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{typedef}} {\cf2{ES_Event}} {\cf16{\b RunFunc_t\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event ThisEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{InitFunc_t}} {\cf11{*}} {\cf2{pInitFunc}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{typedef}} {\cf2{RunFunc_t}} {\cf11{*}} {\cf2{pRunFunc}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define NULL_INIT_FUNC ((pInitFunc){0})}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{}}{\cf14{struct}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    InitFunc_t}} {\cf11{*}}{\cf2{InitFunc}}{\cf11{;}}    {\cf2{}}{\cf5{// Service Initialization function}}}\par\pard
+\cbpat1{{\cf2{    RunFunc_t}} {\cf11{*}}{\cf2{RunFunc}}{\cf11{;}}      {\cf2{}}{\cf5{// Service Run function}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}{\cf2{ES_ServDesc_t}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{}}{\cf14{struct}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    ES_Event}} {\cf11{*}}{\cf2{pMem}}{\cf11{;}}       {\cf2{}}{\cf5{// pointer to the memory}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{8}_t}} {\cf2{Size}}{\cf11{;}}      {\cf2{}}{\cf5{// how big is it}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}{\cf2{ES_QueueDesc_t}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Functions ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//static bool CheckSystemEvents( void );}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Variables ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// You fill in this array with the names of the service init & run functions}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// for each service that you use.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The order is: InitFunction, RunFunction}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// The first entry, at index {0}, is the lowest priority, with increasing}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// priority with higher indices}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{ES_ServDesc_t}} {\cf14{const}} {\cf2{ServDescList}}{\cf11{[] =}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{ \{}}{\cf2{SERV_{0}_INIT}}{\cf11{,}} {\cf2{SERV_{0}_RUN}} {\cf11{\}}} {\cf2{}}{\cf6{/* lowest priority  always present */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#if NUM_SERVICES > {1}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}_INIT}}{\cf11{,}} {\cf2{SERV_{1}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {2}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{2}_INIT}}{\cf11{,}} {\cf2{SERV_{2}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {3}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{3}_INIT}}{\cf11{,}} {\cf2{SERV_{3}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {4}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{4}_INIT}}{\cf11{,}} {\cf2{SERV_{4}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {5}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{5}_INIT}}{\cf11{,}} {\cf2{SERV_{5}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {6}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{6}_INIT}}{\cf11{,}} {\cf2{SERV_{6}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {7}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{7}_INIT}}{\cf11{,}} {\cf2{SERV_{7}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {8}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{8}_INIT}}{\cf11{,}} {\cf2{SERV_{8}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {9}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{9}_INIT}}{\cf11{,}} {\cf2{SERV_{9}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{0}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}{0}_INIT}}{\cf11{,}} {\cf2{SERV_{1}{0}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{1}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}{1}_INIT}}{\cf11{,}} {\cf2{SERV_{1}{1}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{2}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}{2}_INIT}}{\cf11{,}} {\cf2{SERV_{1}{2}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{3}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}{3}_INIT}}{\cf11{,}} {\cf2{SERV_{1}{3}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{4}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}{4}_INIT}}{\cf11{,}} {\cf2{SERV_{1}{4}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{5}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{,\{}}{\cf2{SERV_{1}{5}_INIT}}{\cf11{,}} {\cf2{SERV_{1}{5}_RUN}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// The queues for the services}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{ES_Event Queue{0}}}{\cf11{[}}{\cf2{SERV_{0}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}}}{\cf11{[}}{\cf2{SERV_{1}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{2}}}{\cf11{[}}{\cf2{SERV_{2}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{3}}}{\cf11{[}}{\cf2{SERV_{3}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{4}}}{\cf11{[}}{\cf2{SERV_{4}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {5}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{5}}}{\cf11{[}}{\cf2{SERV_{5}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {6}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{6}}}{\cf11{[}}{\cf2{SERV_{6}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {7}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{7}}}{\cf11{[}}{\cf2{SERV_{7}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {8}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{8}}}{\cf11{[}}{\cf2{SERV_{8}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {9}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{9}}}{\cf11{[}}{\cf2{SERV_{9}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}{0}}}{\cf11{[}}{\cf2{SERV_{1}{0}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{1}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}{1}}}{\cf11{[}}{\cf2{SERV_{1}{1}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}{2}}}{\cf11{[}}{\cf2{SERV_{1}{2}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}{3}}}{\cf11{[}}{\cf2{SERV_{1}{3}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}{4}}}{\cf11{[}}{\cf2{SERV_{1}{4}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{5}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{ES_Event Queue{1}{5}}}{\cf11{[}}{\cf2{SERV_{1}{5}_QUEUE_SIZE}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// array of queue descriptors for posting by priority level}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{ES_QueueDesc_t}} {\cf14{const}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{NUM_SERVICES}}{\cf11{] = \{}} }\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\{}} {\cf2{Queue{0}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{0}}}{\cf11{) \}}} }\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{2}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{2}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{3}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{3}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{4}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{4}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {5}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{5}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{5}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {6}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{6}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{6}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {7}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{7}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{7}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {8}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{8}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{8}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {9}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{9}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{9}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}{0}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}{0}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{1}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}{1}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}{1}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}{2}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}{2}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}{3}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}{3}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}{4}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}{4}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if NUM_SERVICES > {1}{5}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{, \{}} {\cf2{Queue{1}{5}}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Queue{1}{5}}}{\cf11{) \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// Variable used to keep track of which queues have events in them}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{1}{6}_t}} {\cf2{Ready}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*------------------------------ Module Code ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_Initialize}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   TimerRate_t the rate at which to initialize the framework timer subsystem}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   ES_Return_t : FailedPointer if any of the function pointers are NULL}}}\par\pard
+\cbpat1{{\cf6{                 FailedInit if any of the initialization functions failed}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   Initialize all the services and tests for NULL pointers in the array}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {1}{0}/{2}{3}/{1}{1},}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_Return_t}} {\cf16{\b ES_Initialize\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TimerRate_t NewRate}} {\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{i}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b ES_Timer_Init\b0 }}{\cf2{}}{\cf11{(}} {\cf2{NewRate}}{\cf11{);}} {\cf2{}}{\cf5{// start up the timer subsystem}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// loop through the list testing for NULL pointers and}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{for}} {\cf2{}}{\cf11{(}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ServDescList}}{\cf11{);}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{( (}}{\cf2{ServDescList}}{\cf11{[}}{\cf2{i}}{\cf11{].}}{\cf2{InitFunc}} {\cf11{== (}}{\cf2{pInitFunc}}{\cf11{)}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) ||}}}\par\pard
+\cbpat1{{\cf2{}}         {\cf11{(}}{\cf2{ServDescList}}{\cf11{[}}{\cf2{i}}{\cf11{].}}{\cf2{RunFunc}} {\cf11{== (}}{\cf2{pRunFunc}}{\cf11{)}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) )}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}} {\cf2{FailedPointer}}{\cf11{;}} {\cf2{}}{\cf5{// protect against NULL pointers}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// and initializing the event queues (must happen before running inits)  }}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ES_InitQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{i}}{\cf11{].}}{\cf2{pMem}}{\cf11{,}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{i}}{\cf11{].}}{\cf2{Size}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// executing the init functions}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{ServDescList}}{\cf11{[}}{\cf2{i}}{\cf11{].}}{\cf2{}}{\cf16{\b InitFunc\b0 }}{\cf2{}}{\cf11{(}}{\cf2{i}}{\cf11{) !=}} {\cf2{}}{\cf13{true}} {\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}} {\cf2{FailedInit}}{\cf11{;}} {\cf2{}}{\cf5{// this is a failed initialization}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{Success}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_Run}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   None}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   ES_Return_t : FailedRun is any of the run functions failed during execution}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   This is the main framework function. It searches through the state}}}\par\pard
+\cbpat1{{\cf6{   machines to find one with a non-empty queue and then executes the}}}\par\pard
+\cbpat1{{\cf6{   state machine to process the event in its queue.}}}\par\pard
+\cbpat1{{\cf6{   while all the queues are empty, it searches for system generated or}}}\par\pard
+\cbpat1{{\cf6{   user generated events.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   this function only returns in case of an error}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {1}{0}/{2}{3}/{1}{1},}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_Return_t}} {\cf16{\b ES_Run\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// make these static to improve speed}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{HighestPrior}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{static}} {\cf2{ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{)\{}} {\cf2{}}{\cf5{// stay here unless we detect an error condition}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{// loop through the list executing the run functions for services}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// with a non-empty queue. Process any pending ints before testing}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Ready}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{while}}{\cf2{}}{\cf11{( (}}{\cf2{}}{\cf16{\b _HW_Process_Pending_Ints\b0 }}{\cf2{}}{\cf11{()) && (}}{\cf2{Ready}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{))\{}}}\par\pard
+\cbpat1{{\cf2{      HighestPrior}} {\cf11{=}}  {\cf2{}}{\cf16{\b ES_GetMSBitSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Ready}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{}}{\cf16{\b ES_DeQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{HighestPrior}}{\cf11{].}}{\cf2{pMem}}{\cf11{, &}}{\cf2{ThisEvent}} {\cf11{) ==}} {\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{        Ready}} {\cf11{&=}} {\cf2{BitNum{2}ClrMask}}{\cf11{[}}{\cf2{HighestPrior}}{\cf11{];}} {\cf2{}}{\cf5{// mark queue as now empty}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{if}}{\cf2{}}{\cf11{(}} {\cf2{ServDescList}}{\cf11{[}}{\cf2{HighestPrior}}{\cf11{].}}{\cf2{}}{\cf16{\b RunFunc\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{).}}{\cf2{EventType}} {\cf11{!=}} }\par\pard
+\cbpat1{{\cf2{                                                              ES_NO_EVENT}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}              {\cf13{return}} {\cf2{FailedRun}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{// all the queues are empty, so look for new user detected events}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b ES_CheckUserEvents\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_PostAll}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   ES_Event : The Event to be posted}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   boolean : False if any of the post functions failed during execution}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   posts to all of the services' queues }}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{1}/{1}{5}/{1}{2},}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b ES_PostAll\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event ThisEvent}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf14{uint{8}_t}} {\cf2{i}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// loop through the list executing the post functions}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{for}} {\cf2{}}{\cf11{(}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EventQueues}}{\cf11{);}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{i}}{\cf11{].}}{\cf2{pMem}}{\cf11{,}} {\cf2{ThisEvent}} {\cf11{) !=}} {\cf2{}}{\cf13{true}} {\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{break}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// this is a failed post}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{      Ready}} {\cf11{|=}} {\cf2{BitNum{2}SetMask}}{\cf11{[}}{\cf2{i}}{\cf11{];}} {\cf2{}}{\cf5{// show queue as non-empty}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{i}} {\cf11{==}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EventQueues}}{\cf11{) )\{}} {\cf2{}}{\cf5{// if no failures}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_PostToService}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   uint{8}_t : Which service to post to (index into ServDescList)}}}\par\pard
+\cbpat1{{\cf6{   ES_Event : The Event to be posted}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   boolean : False if the post function failed during execution}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   posts to one of the services' queues}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   used by the timer library to associate a timer with a state machine}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{1}/{1}{6}/{1}{2},}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b ES_PostToService\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{WhichService}}{\cf11{,}} {\cf2{ES_Event TheEvent}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{((}}{\cf2{WhichService}} {\cf11{<}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EventQueues}}{\cf11{)) &&}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{(}}{\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{WhichService}}{\cf11{].}}{\cf2{pMem}}{\cf11{,}} {\cf2{TheEvent}}{\cf11{) ==}} }\par\pard
+\cbpat1{{\cf2{}}                                                                {\cf13{true}} {\cf2{}}{\cf11{))\{}}}\par\pard
+\cbpat1{{\cf2{    Ready}} {\cf11{|=}} {\cf2{BitNum{2}SetMask}}{\cf11{[}}{\cf2{WhichService}}{\cf11{];}} {\cf2{}}{\cf5{// show queue as non-empty}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}} {\cf2{}}{\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_PostToServiceLIFO}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   uint{8}_t : Which service to post to (index into ServDescList)}}}\par\pard
+\cbpat1{{\cf6{   ES_Event : The Event to be posted}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   boolean : False if the post function failed during execution}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   Posts, using LIFO strategy, to one of the services' queues}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   used by the Defer/Recall event capability}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {1}{1}/{0}{2}/{1}{3}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b ES_PostToServiceLIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{WhichService}}{\cf11{,}} {\cf2{ES_Event TheEvent}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{((}}{\cf2{WhichService}} {\cf11{<}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EventQueues}}{\cf11{)) &&}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{(}}{\cf2{}}{\cf16{\b ES_EnQueueLIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{EventQueues}}{\cf11{[}}{\cf2{WhichService}}{\cf11{].}}{\cf2{pMem}}{\cf11{,}} {\cf2{TheEvent}}{\cf11{) ==}} }\par\pard
+\cbpat1{{\cf2{}}                                                                {\cf13{true}} {\cf2{}}{\cf11{))\{}}}\par\pard
+\cbpat1{{\cf2{    Ready}} {\cf11{|=}} {\cf2{BitNum{2}SetMask}}{\cf11{[}}{\cf2{WhichService}}{\cf11{];}} {\cf2{}}{\cf5{// show queue as non-empty}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}} {\cf2{}}{\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*********************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// private functions}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*********************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#if {0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   CheckSystemEvents}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   None}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   boolean : True if a system event was detected}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   check for system generated events and uses pPostKeyFunc to post to one}}}\par\pard
+\cbpat1{{\cf6{   of the state machine's queues}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   currently only tests for incoming keystrokes}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {1}{0}/{2}{3}/{1}{1}, }}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static bool}} {\cf2{}}{\cf16{\b CheckSystemEvents\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{}}{\cf16{\b kbhit\b0 }}{\cf2{}}{\cf11{() !=}} {\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{)}} {\cf2{}}{\cf5{// new key waiting?}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_NEW_KEY}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf16{\b getchar\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{(*}}{\cf2{pPostKeyFunc}}{\cf11{)(}} {\cf2{ThisEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*------------------------------- Footnotes -------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*------------------------------ End of file ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}}

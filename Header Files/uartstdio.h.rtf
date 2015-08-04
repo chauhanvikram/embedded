@@ -1,0 +1,90 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// uartstdio.h - Prototypes for the UART console functions.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Copyright (c) {2}{0}{0}{7}-{2}{0}{1}{3} Texas Instruments Incorporated.  All rights reserved.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Software License Agreement}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Texas Instruments (TI) is supplying this software for use solely and}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// exclusively on TI's microcontroller products. The software is owned by}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// TI and/or its suppliers, and is protected under applicable copyright}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// laws. You may not combine this software with "viral" open-source}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// software in order to form a larger program.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// DAMAGES, FOR ANY REASON WHATSOEVER.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// This is part of revision {2}.{0}.{1}.{1}{1}{5}{7}{7} of the Tiva Utility Library.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifndef __UARTSTDIO_H__}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define __UARTSTDIO_H__}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdarg.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// If building with a C++ compiler, make all of the definitions in this header}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// have a C binding.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef __cplusplus}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf3{"C"}}{\cf2{}}}\par\pard
+\cbpat1{{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// If built for buffered operation, the following labels define the sizes of}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// the transmit and receive buffers respectively.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifndef UART_RX_BUFFER_SIZE}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define UART_RX_BUFFER_SIZE     {1}{2}{8}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifndef UART_TX_BUFFER_SIZE}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define UART_TX_BUFFER_SIZE     {1}{0}{2}{4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Prototypes for the APIs.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b UARTStdioConfig\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Port}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Baud}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                            {\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}SrcClock}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b UARTgets\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{char}} {\cf2{}}{\cf11{*}}{\cf2{pcBuf}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Len}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{unsigned char}} {\cf2{}}{\cf16{\b UARTgetc\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b UARTprintf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{pcString}}{\cf11{, ...);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b UARTvprintf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{pcString}}{\cf11{,}} {\cf2{}}{\cf14{va_list}} {\cf2{vaArgP}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b UARTwrite\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{const char}} {\cf2{}}{\cf11{*}}{\cf2{pcBuf}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{ui{3}{2}Len}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef UART_BUFFERED}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b UARTPeek\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{unsigned char}} {\cf2{ucChar}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b UARTFlushTx\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{bool}} {\cf2{bDiscard}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b UARTFlushRx\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b UARTRxBytesAvail\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{int}} {\cf2{}}{\cf16{\b UARTTxBytesFree\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{extern}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b UARTEchoSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{bool}} {\cf2{bEnable}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Mark the end of the C bindings section for C++ compilers.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//*****************************************************************************}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef __cplusplus}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}} {\cf5{// __UARTSTDIO_H__}}{\cf8{}}{\cf2{}}}\par\pard
+\cbpat1{}}

@@ -1,0 +1,128 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{//#define TEST}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{     ES_LookupTables.c}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     This is the home for a set of constant lookup tables that are used in}}}\par\pard
+\cbpat1{{\cf6{     multiple places in the framework and beyond. }}}\par\pard
+\cbpat1{{\cf6{     }}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     As a rule, I don't approve of global variables for a host of reasons.}}}\par\pard
+\cbpat1{{\cf6{     In this case I decided to make them global in the interests of}}}\par\pard
+\cbpat1{{\cf6{     efficiency. These tables will be references very often in the timer}}}\par\pard
+\cbpat1{{\cf6{     functions (as often as {8} times/ms) and on every pass through the event}}}\par\pard
+\cbpat1{{\cf6{     scheduler/dispatcher. As a result I decided to simply make them global.}}}\par\pard
+\cbpat1{{\cf6{     Since they are constant, they are not subject to the multiple access}}}\par\pard
+\cbpat1{{\cf6{     point issues associated with modifiable global variables.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{0}/{1}{3} {1}{7}:{0}{3} jec      converted Byte{2}MSBitNum array to a Nybble sized array}}}\par\pard
+\cbpat1{{\cf6{                         ({1}{5} entries) and made function GetMSBitSet() to figure }}}\par\pard
+\cbpat1{{\cf6{                         out the MSB set. This was done to facilitate moving to}}}\par\pard
+\cbpat1{{\cf6{                         {1}{6} timers & services, which would take too big of a }}}\par\pard
+\cbpat1{{\cf6{                         table to look up directly.}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {0}{9}:{0}{7} jec      change of heart: converted to global vars for the}}}\par\pard
+\cbpat1{{\cf6{                         tables and removed the access functions}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{2}/{1}{2} {1}{0}:{2}{5} jec      adding the Ready variable and management functions.}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{0}{3}/{1}{2} {1}{1}:{1}{6} jec      started coding}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Include Files -----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_General.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Timers.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"bitdefs.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Module Defines ----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define ISOLATE_LS_NYBBLE {0}x{0}F}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Functions ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Variables ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{  this table is used to go from a bit number ({0}-{7}) to the mask used to clear}}}\par\pard
+\cbpat1{{\cf6{  that bit in a byte. Technically, this is not necessary (as you could always}}}\par\pard
+\cbpat1{{\cf6{  complement the SetMask) but it will save the complement operation every }}}\par\pard
+\cbpat1{{\cf6{  time it is used to clear a bit. If we clear a bit with it in more than {8}}}}\par\pard
+\cbpat1{{\cf6{  places, then it is a win on code size and speed.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{uint{1}{6}_t const BitNum{2}ClrMask[] = \{}}}\par\pard
+\cbpat1{{\cf6{  BIT{0}LO, BIT{1}LO, BIT{2}LO, BIT{3}LO, BIT{4}LO, BIT{5}LO, BIT{6}LO, BIT{7}LO, BIT{8}LO, BIT{9}LO,}}}\par\pard
+\cbpat1{{\cf6{  BIT{1}{0}LO, BIT{1}{1}LO, BIT{1}{2}LO, BIT{1}{3}LO, BIT{1}{4}LO, BIT{1}{5}LO}}}\par\pard
+\cbpat1{{\cf6{\};}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{  this table is used to go from a bit number ({0}-{1}{5}) to the mask used to set}}}\par\pard
+\cbpat1{{\cf6{  that bit in a byte.}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{1}{6}_t const}} {\cf2{BitNum{2}SetMask}}{\cf11{[] = \{}}}\par\pard
+\cbpat1{{\cf2{  BIT{0}HI}}{\cf11{,}} {\cf2{BIT{1}HI}}{\cf11{,}} {\cf2{BIT{2}HI}}{\cf11{,}} {\cf2{BIT{3}HI}}{\cf11{,}} {\cf2{BIT{4}HI}}{\cf11{,}} {\cf2{BIT{5}HI}}{\cf11{,}} {\cf2{BIT{6}HI}}{\cf11{,}} {\cf2{BIT{7}HI}}{\cf11{,}} {\cf2{BIT{8}HI}}{\cf11{,}} {\cf2{BIT{9}HI}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{  BIT{1}{0}HI}}{\cf11{,}} {\cf2{BIT{1}{1}HI}}{\cf11{,}} {\cf2{BIT{1}{2}HI}}{\cf11{,}} {\cf2{BIT{1}{3}HI}}{\cf11{,}} {\cf2{BIT{1}{4}HI}}{\cf11{,}} {\cf2{BIT{1}{5}HI}}}\par\pard
+\cbpat1{{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{  this table is used to go from an unsigned {4}bit value to the most significant}}}\par\pard
+\cbpat1{{\cf6{  bit that is set in that nybble. It is used in the determination of priorities}}}\par\pard
+\cbpat1{{\cf6{  from the Ready variable and in determining active timers in }}}\par\pard
+\cbpat1{{\cf6{  the timer interrupt response. Index into the array with (ByteVal-{1}) to get }}}\par\pard
+\cbpat1{{\cf6{  the correct MS Bit num.}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{8}_t const}} {\cf2{Nybble{2}MSBitNum}}{\cf11{[}}{\cf2{}}{\cf4{{1}{5}}}{\cf2{}}{\cf11{] = \{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf4{{0}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}U}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*------------------------------ Module Code ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{8}_t}} {\cf2{}}{\cf16{\b ES_GetMSBitSet\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{Val{2}Check}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf14{int{8}_t}} {\cf2{LoopCntr}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{Nybble{2}Test}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf4{{1}{2}{8}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// this is the error return value}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf5{// loop through the parameter, nybble by nybble}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{for}}{\cf2{}}{\cf11{(}} {\cf2{LoopCntr}} {\cf11{=}} {\cf2{}}{\cf13{sizeof}}{\cf2{}}{\cf11{(}}{\cf2{Val{2}Check}}{\cf11{) * (}}{\cf2{BITS_PER_BYTE}}{\cf11{/}}{\cf2{BITS_PER_NYBBLE}}{\cf11{)-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{       LoopCntr}} {\cf11{>=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{LoopCntr}}{\cf11{--) \{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// move a nybble into the {4} LSB positions for lookup}}}\par\pard
+\cbpat1{{\cf2{    Nybble{2}Test}} {\cf11{= (}}{\cf2{}}{\cf14{uint{8}_t}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}                  {\cf11{((}}{\cf2{Val{2}Check}} {\cf11{>> (}}{\cf2{}}{\cf14{uint{8}_t}}{\cf2{}}{\cf11{)(}}{\cf2{LoopCntr}} {\cf11{*}} {\cf2{BITS_PER_NYBBLE}}{\cf11{)) &}} }\par\pard
+\cbpat1{{\cf2{                          ISOLATE_LS_NYBBLE}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{Nybble{2}Test}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf5{// lookup the bit num & adjust for the number of shifts to get there}}}\par\pard
+\cbpat1{{\cf2{      ReturnVal}} {\cf11{=}} {\cf2{Nybble{2}MSBitNum}}{\cf11{[}}{\cf2{Nybble{2}Test}}{\cf11{-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{] +}} }\par\pard
+\cbpat1{{\cf2{}}                  {\cf11{(}}{\cf2{LoopCntr}} {\cf11{*}} {\cf2{BITS_PER_NYBBLE}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{break}}{\cf2{}}{\cf11{;}}     }\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}  }\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/***************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ private functions}}}\par\pard
+\cbpat1{{\cf6{ ***************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef TEST}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b main\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf14{uint{1}{6}_t}} {\cf2{Counter}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{MSBit}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf16{\b puts\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Testing the MSB Look-up function}}{\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b puts\b0 }}{\cf2{}}{\cf11{(}}{\cf2{__TIME__}} {\cf3{" "}}{\cf2{ __DATE__}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b puts\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  MSBit}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_GetMSBitSet\b0 }}{\cf2{}}{\cf11{(}} {\cf2{Counter}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"the MSB set in %u is bit %d}}{\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{,}}{\cf2{Counter}}{\cf11{,}}{\cf2{MSBit}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{Counter}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{Counter}} {\cf11{!=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{Counter}}{\cf11{++)\{}}}\par\pard
+\cbpat1{{\cf2{    MSBit}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_GetMSBitSet\b0 }}{\cf2{}}{\cf11{(}} {\cf2{Counter}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"the MSB set in %u is bit %d}}{\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{,}}{\cf2{Counter}}{\cf11{,}}{\cf2{MSBit}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*------------------------------ End of File ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}}

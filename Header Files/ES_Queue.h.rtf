@@ -1,0 +1,36 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{     ES_Queue.h}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     header file for use with the Queue functions of the Events  & Services }}}\par\pard
+\cbpat1{{\cf6{     Framework}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{5}/{1}{3} {1}{5}:{1}{9} jec      modifications to suit new portable type definitions}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {0}{9}:{3}{6} jec      converted to use new types from ES_Types.h}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{1}{7}/{1}{1} {0}{7}:{4}{9} jec      new header to match the rest of the framework}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{9}/{1}{1} {0}{9}:{3}{0} jec      started coding}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifndef ES_Queue_H}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ES_Queue_H}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Events.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* prototypes for public functions */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{uint{8}_t}} {\cf2{}}{\cf16{\b ES_InitQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{BlockSize}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{bool}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{ES_Event Event{2}Add}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{bool}} {\cf2{}}{\cf16{\b ES_EnQueueLIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{ES_Event Event{2}Add}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{uint{8}_t}} {\cf2{}}{\cf16{\b ES_DeQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pReturnEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//void EF_FlushQueue( unsigned char * pBlock );}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{bool}} {\cf2{}}{\cf16{\b ES_IsQueueEmpty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}} {\cf6{/*ES_Queue_H */}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}}

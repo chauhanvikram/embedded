@@ -1,0 +1,55 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf8{#ifndef BIN_CONST_H}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define BIN_CONST_H}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* Binary constant generator macro}}}\par\pard
+\cbpat1{{\cf6{   By Tom Torfs - donated to the public domain}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/* All macro's evaluate to compile-time constants */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/* *** helper macros *** */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/* turn a numeric literal into a hex constant}}}\par\pard
+\cbpat1{{\cf6{   (avoids problems with leading zeroes)}}}\par\pard
+\cbpat1{{\cf6{   {8}-bit constants max value {0}x{1}{1}{1}{1}{1}{1}{1}{1}, always fits in unsigned long}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#define HEX__(n) {0}x##n##UL}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* {8}-bit conversion function */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define B{8}__(x) ((x&{0}x{0}{0}{0}{0}{0}{0}{0}FUL)?{1}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}x{0}{0}{0}{0}{0}{0}F{0}UL)?{2}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}x{0}{0}{0}{0}{0}F{0}{0}UL)?{4}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}x{0}{0}{0}{0}F{0}{0}{0}UL)?{8}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}x{0}{0}{0}F{0}{0}{0}{0}UL)?{1}{6}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}x{0}{0}F{0}{0}{0}{0}{0}UL)?{3}{2}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}x{0}F{0}{0}{0}{0}{0}{0}UL)?{6}{4}:{0})\\}}}\par\pard
+\cbpat1{{\cf8{               +((x&{0}xF{0}{0}{0}{0}{0}{0}{0}UL)?{1}{2}{8}:{0})}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* *** user macros *** */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* for upto {8}-bit binary constants */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#define B{8}(d) ((uint{8}_t)B{8}__(HEX__(d)))}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* for upto {1}{6}-bit binary constants, MSB first */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#define B{1}{6}(dmsb,dlsb) (((unsigned short)B{8}(dmsb)<<{8})\\}}}\par\pard
+\cbpat1{{\cf8{+ B{8}(dlsb))}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* for upto {3}{2}-bit binary constants, MSB first */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#define B{3}{2}(dmsb,db{2},db{3},dlsb) (((unsigned long)B{8}(dmsb)<<{2}{4}) \\}}}\par\pard
+\cbpat1{{\cf8{  + ((unsigned long)B{8}(db{2})<<{1}{6}) \\}}}\par\pard
+\cbpat1{{\cf8{  + ((unsigned long)B{8}(db{3})<<{8}) \\}}}\par\pard
+\cbpat1{{\cf8{  + B{8}(dlsb))}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}}                       {\cf6{/* BIN_CONST_H */}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* Sample usage:}}}\par\pard
+\cbpat1{{\cf6{      B{8}({0}{1}{0}{1}{0}{1}{0}{1}) = {8}{5}}}}\par\pard
+\cbpat1{{\cf6{      B{1}{6}({1}{0}{1}{0}{1}{0}{1}{0},{0}{1}{0}{1}{0}{1}{0}{1}) = {4}{3}{6}{0}{5}}}}\par\pard
+\cbpat1{{\cf6{      B{3}{2}({1}{0}{0}{0}{0}{0}{0}{0},{1}{1}{1}{1}{1}{1}{1}{1},{1}{0}{1}{0}{1}{0}{1}{0},{0}{1}{0}{1}{0}{1}{0}{1}) = {2}{1}{6}{4}{2}{3}{8}{9}{3}{3}}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{}}

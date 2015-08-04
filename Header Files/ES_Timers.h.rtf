@@ -1,0 +1,57 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{         ES_Timers.h}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Revision}}}\par\pard
+\cbpat1{{\cf6{         {1}.{0}.{1}}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{         Header File for the ME{2}{1}{8} Timer Module}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who	What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---	--------}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{1}{3}/{1}{3} {1}{2}:{0}{3} jec  added prototype for ES_Timer_Tick_Resp as part of }}}\par\pard
+\cbpat1{{\cf6{                     moving all of the hardware specific code to ES_Port.c}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {1}{6}:{4}{3} jec  converted for Gen{2} of the Events & Services Framework}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{1}/{1}{1} {1}{8}:{3}{3} jec  Begin conversion for use with the new Event Framework}}}\par\pard
+\cbpat1{{\cf6{ {0}{9}/{0}{1}/{0}{5} {1}{2}:{2}{9} jec  Converted rates and return values to enumerated constants}}}\par\pard
+\cbpat1{{\cf6{ {0}{6}/{1}{5}/{0}{4} {0}{9}:{5}{8} jec  converted all prefixes to EF_Timer}}}\par\pard
+\cbpat1{{\cf6{ {0}{5}/{2}{7}/{0}{4} {1}{5}:{0}{4} jec  revised TMR_RATE macros for the S{1}{2}}}}\par\pard
+\cbpat1{{\cf6{ {1}{1}/{2}{4}/{0}{0} {1}{3}:{1}{7} jec  revised TMR_RATE macros for the HC{1}{2}}}}\par\pard
+\cbpat1{{\cf6{ {0}{2}/{2}{0}/{9}{9} {1}{4}:{1}{1} jec  added #defines for TMR_ERR, TMR_ACTIVE, TMR_EXPIRED}}}\par\pard
+\cbpat1{{\cf6{ {0}{2}/{2}{4}/{9}{7} {1}{4}:{2}{8} jec  Began Coding}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#ifndef ES_Timers_H}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ES_Timers_H}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{}}{\cf14{enum}} {\cf2{}}{\cf11{\{}} {\cf2{ES_Timer_ERR}}           {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{               ES_Timer_ACTIVE}}        {\cf11{=}}  {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{               ES_Timer_OK}}            {\cf11{=}}  {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{               ES_Timer_NOT_ACTIVE}}    {\cf11{=}}  {\cf2{}}{\cf4{{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}} {\cf2{ES_TimerReturn_t}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}}             {\cf2{}}{\cf16{\b ES_Timer_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TimerRate_t Rate}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}}             {\cf2{}}{\cf16{\b ES_Timer_Tick_Resp\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{ES_TimerReturn_t}} {\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{,}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{NewTime}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{ES_TimerReturn_t}} {\cf16{\b ES_Timer_SetTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{,}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{NewTime}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{ES_TimerReturn_t}} {\cf16{\b ES_Timer_StartTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{ES_TimerReturn_t}} {\cf16{\b ES_Timer_StopTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{ES_TimerReturn_t}} {\cf16{\b ES_Timer_IsTimerActive\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{uint{1}{6}_t}}         {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}}   {\cf6{/* ES_Timers_H */}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*------------------------------ End of file ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}}

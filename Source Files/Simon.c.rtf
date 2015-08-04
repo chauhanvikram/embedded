@@ -1,0 +1,514 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{   Simon.c}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Revision}}}\par\pard
+\cbpat1{{\cf6{   {1}.{0}.{1}}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   This is a template file for implementing flat state machines under the}}}\par\pard
+\cbpat1{{\cf6{   Gen{2} Events and Services Framework.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {1}{1}/{1}{2}/{1}{4} {1}{8}:{4}{2} cam      started module}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Include Files -----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* include header files for this state machine as well as any machines at the}}}\par\pard
+\cbpat1{{\cf6{   next lower level in the hierarchy that are sub-machines to this machine}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdbool.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdlib.h>}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/pin_map.h"}}{\cf8{}}	{\cf5{// Define PART_TM{4}C{1}{2}{3}GH{6}PM in project}}}\par\pard
+\cbpat1{{\cf8{}}{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"termio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Framework.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"Simon.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"GameManager.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Module Defines ----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define ONE_SEC {9}{7}{6}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define HALF_SEC (ONE_SEC/{2})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TWO_SEC (ONE_SEC*{2})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define FIVE_SEC (ONE_SEC*{5})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TEN_SEC (ONE_SEC*{1}{0})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define THIRTY_SEC (ONE_SEC*{3}{0})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SIXTY_SEC (ONE_SEC*{6}{0})}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// Hardware defs}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define REGISTER_PORT HWREG(GPIO_PORTE_BASE+(GPIO_O_DATA + ALL_BITS))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// output shift register}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define RCLK_PIN GPIO_PIN_{2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SRCLK_PIN GPIO_PIN_{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SERIAL_OUT_PIN GPIO_PIN_{4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//input shift register}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define CLK_PIN GPIO_PIN_{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SHIFT_LOAD_PIN GPIO_PIN_{4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SERIAL_IN_PIN GPIO_PIN_{5}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define DEBOUNCE_TIME {2}{5}{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ALL_BITS ({0}xff<<{2}) }}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//#define test}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define clrScrn() 	printf(}}{\cf9{"}}{\cf7{\\x{1}b}}{\cf9{[{2}J"}}{\cf8{)}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//led array defs}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define OFF {1}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ON {0}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define PLAYER_ONE {1}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define PLAYER_TWO {2}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define BLINK_TIME ONE_SEC/{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define PAUSE_TIME ONE_SEC}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define NUM_BLINKS {4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define NONE_SELECTED {4}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Functions ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b SetRandomPattern\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b PatternIsCorrect\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Variables ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// everybody needs a state variable, you may need others as well.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// type of state variable should match htat of enum in header file}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{SimonState_t CurrentState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// with the introduction of Gen{2}, we need a module level Priority var as well}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}} {\cf2{MyPriority}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static char}} {\cf2{BitmaskArray}}{\cf11{[}}{\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{] = \{}}{\cf2{BIT{0}HI}}{\cf11{,}} {\cf2{BIT{1}HI}}{\cf11{,}} {\cf2{BIT{2}HI}}{\cf11{,}} {\cf2{BIT{3}HI}}{\cf11{,}} {\cf2{BIT{4}HI}}{\cf11{,}} {\cf2{BIT{5}HI}}{\cf11{,}} {\cf2{BIT{6}HI}}{\cf11{,}} {\cf2{BIT{7}HI}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static int}} {\cf2{LedArray}}{\cf11{[}}{\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{] = \{}}{\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{,}} {\cf2{OFF}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static int}} {\cf2{BlinkCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static int}} {\cf2{NumChosen}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static int}} {\cf2{RandomPattern}}{\cf11{[}}{\cf2{NUM_BLINKS}}{\cf11{] = \{}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static int}} {\cf2{SelectedLeds}}{\cf11{[}}{\cf2{NUM_BLINKS}}{\cf11{] = \{}}{\cf2{NONE_SELECTED}}{\cf11{,}} {\cf2{NONE_SELECTED}}{\cf11{,}} {\cf2{NONE_SELECTED}}{\cf11{,}} {\cf2{NONE_SELECTED}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*------------------------------ Module Code ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     InitSimon}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     uint{8}_t : the priorty of this service}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     bool, false if error in initialization, true otherwise}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Saves away the priority, sets up the initial transition and does any}}}\par\pard
+\cbpat1{{\cf6{     other required initialization for this state machine}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {1}{0}/{2}{3}/{1}{1}, {1}{8}:{5}{5}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b InitSimon\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Priority}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{  MyPriority}} {\cf11{=}} {\cf2{Priority}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  CurrentState}} {\cf11{=}} {\cf2{Inactive}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{   {\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{Dummy}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// enable the clock to Port B}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{) |=}} {\cf2{SYSCTL_RCGCGPIO_R{4}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// kill a few cycles to let the peripheral clock get going}}}\par\pard
+\cbpat1{{\cf2{	Dummy}} {\cf11{=}} {\cf2{}}{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Enable pins for digital I/O}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PORTE_BASE}}{\cf11{+}}{\cf2{GPIO_O_DEN}}{\cf11{) |= (}}{\cf2{RCLK_PIN}} {\cf11{|}} {\cf2{CLK_PIN}} {\cf11{|}} {\cf2{SHIFT_LOAD_PIN}} {\cf11{|}} {\cf2{SERIAL_IN_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{  {\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PORTE_BASE}}{\cf11{+}}{\cf2{GPIO_O_DIR}}{\cf11{) |= (}}{\cf2{RCLK_PIN}} {\cf11{|}} {\cf2{CLK_PIN}} {\cf11{|}} {\cf2{SHIFT_LOAD_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PORTE_BASE}}{\cf11{+}}{\cf2{GPIO_O_DIR}}{\cf11{) &= ~}}{\cf2{SERIAL_IN_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    }\par\pard
+\cbpat1{  REGISTER_PORT}} {\cf11{|=}} {\cf2{SHIFT_LOAD_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  REGISTER_PORT}} {\cf11{&= ~}}{\cf2{CLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{  {\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     PostSimon}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     EF_Event ThisEvent , the event to post to the queue}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     boolean False if the Enqueue operation failed, True otherwise}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Posts an event to this state machine's queue}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {1}{0}/{2}{3}/{1}{1}, {1}{9}:{2}{5}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b PostSimon\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ES_Event ThisEvent}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{}}{\cf16{\b ES_PostToService\b0 }}{\cf2{}}{\cf11{(}} {\cf2{MyPriority}}{\cf11{,}} {\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{    RunSimon}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   ES_Event : the event to process}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   ES_Event, ES_NO_EVENT if no error ES_ERROR otherwise}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   add your description here}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   uses nested switch/case to implement the machine.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{1}/{1}{5}/{1}{2}, {1}{5}:{2}{3}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_Event}} {\cf16{\b RunSimon\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event ThisEvent}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{  ES_Event ReturnEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  ReturnEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_NO_EVENT}}{\cf11{;}} {\cf2{}}{\cf5{// assume no errors}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{//\{SamplingOne, SamplineTwo, Inactive, DebouncingOne, DebouncingTwo\} SimonState_t ;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{switch}} {\cf2{}}{\cf11{(}}{\cf2{CurrentState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{case}} {\cf2{Inactive}}{\cf11{:}}       {\cf2{}}{\cf5{// If current state is Inactive}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{SimonStart}}{\cf11{) \{}} {\cf2{}}{\cf5{// only respond to activate command}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf5{//reset all leds}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}				}\par\pard
+\cbpat1{				{\cf5{// set the random pattern to blink the leds}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b SetRandomPattern\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}				}\par\pard
+\cbpat1{				{\cf5{// set the number of chosen leds to {0};}}}\par\pard
+\cbpat1{{\cf2{				NumChosen}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				}\par\pard
+\cbpat1{				BlinkCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{				{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{SelectedLeds}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{NONE_SELECTED}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			}\par\pard
+\cbpat1{				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{PLAYER_ONE}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{					CurrentState}} {\cf11{=}} {\cf2{SamplingOne}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Simon One\\r\\n");}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{BLINK_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}} {\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{PLAYER_TWO}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{					CurrentState}} {\cf11{=}} {\cf2{SamplingTwo}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Simon Two\\r\\n");}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{BLINK_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Should Not Have Gotten Here: Simon.c RunSimon}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{SamplingOne}}{\cf11{:}}  }\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{ButtonPadPressed}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{<}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_DEBOUNCE_TIMER}}{\cf11{,}} {\cf2{DEBOUNCE_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{          CurrentState}} {\cf11{=}} {\cf2{DebouncingOne}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Button %i\\r\\n", ThisEvent.EventParam);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf14{int}} {\cf2{index}} {\cf11{=}} {\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{LedArray}}{\cf11{[}}{\cf2{index}}{\cf11{] ==}} {\cf2{ON}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{index}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{						NumChosen}} {\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{						SelectedLeds}}{\cf11{[}}{\cf2{NumChosen}}{\cf11{] =}} {\cf2{NONE_SELECTED}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{						SelectedLeds}}{\cf11{[}}{\cf2{NumChosen}}{\cf11{] =}} {\cf2{index}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{index}}{\cf11{] =}} {\cf2{ON}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{						NumChosen}} {\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{NumChosen}} {\cf11{==}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}							{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b PatternIsCorrect\b0 }}{\cf2{}}{\cf11{()) \{}}}\par\pard
+\cbpat1{{\cf2{								ES_Event Complete}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{								Complete}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{SimonCompleted}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b PostGameManager\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Complete}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Correct Pattern}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{								CurrentState}} {\cf11{=}} {\cf2{Inactive}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}							{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Incorrect Pattern}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf5{//TODO: Incorrect blink pattern}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{								NumChosen}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{SelectedLeds}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{NONE_SELECTED}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}							{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}} }\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}} {\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{ES_TIMEOUT}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{SIMON_BLINK_TIMER}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Blink %i\\r\\n", BlinkCounter); }}}\par\pard
+\cbpat1{{\cf2{}}					{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{BlinkCounter}} {\cf11{==}} {\cf2{NUM_BLINKS}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{PAUSE_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf14{int}} {\cf2{LedToBlink}} {\cf11{=}} {\cf2{RandomPattern}}{\cf11{[}}{\cf2{BlinkCounter}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{LedToBlink}}{\cf11{+}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{] =}} {\cf2{ON}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{BLINK_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}} {\cf2{}}{\cf13{else if}} {\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{StopSimon}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{				CurrentState}} {\cf11{=}} {\cf2{Inactive}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{DebouncingOne}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{ES_TIMEOUT}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{SIMON_DEBOUNCE_TIMER}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{					CurrentState}} {\cf11{=}} {\cf2{SamplingOne}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}} {\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{SIMON_BLINK_TIMER}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Blink %i\\r\\n", BlinkCounter); }}}\par\pard
+\cbpat1{{\cf2{}}					{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{BlinkCounter}} {\cf11{==}} {\cf2{NUM_BLINKS}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{PAUSE_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf14{int}} {\cf2{LedToBlink}} {\cf11{=}} {\cf2{RandomPattern}}{\cf11{[}}{\cf2{BlinkCounter}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{LedToBlink}}{\cf11{+}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{] =}} {\cf2{ON}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{BLINK_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		 {\cf13{case}} {\cf2{SamplingTwo}}{\cf11{:}}  }\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{ButtonPadPressed}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{>}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_DEBOUNCE_TIMER}}{\cf11{,}} {\cf2{DEBOUNCE_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{          CurrentState}} {\cf11{=}} {\cf2{DebouncingTwo}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Button %i\\r\\n", ThisEvent.EventParam);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf14{int}} {\cf2{index}} {\cf11{=}} {\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{LedArray}}{\cf11{[}}{\cf2{index}}{\cf11{] ==}} {\cf2{ON}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{index}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{						NumChosen}} {\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{						SelectedLeds}}{\cf11{[}}{\cf2{NumChosen}}{\cf11{] =}} {\cf2{NONE_SELECTED}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{						SelectedLeds}}{\cf11{[}}{\cf2{NumChosen}}{\cf11{] =}} {\cf2{index}}{\cf11{-}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{index}}{\cf11{] =}} {\cf2{ON}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{						NumChosen}} {\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{NumChosen}} {\cf11{==}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}							{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b PatternIsCorrect\b0 }}{\cf2{}}{\cf11{()) \{}}}\par\pard
+\cbpat1{{\cf2{								ES_Event Complete}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{								Complete}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{SimonCompleted}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b PostGameManager\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Complete}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Correct Pattern}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{								CurrentState}} {\cf11{=}} {\cf2{Inactive}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}							{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Incorrect Pattern}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf5{//TODO: Incorrect blink pattern}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{								NumChosen}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}								{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{SelectedLeds}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{NONE_SELECTED}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}							{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}} }\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}} {\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{ES_TIMEOUT}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{SIMON_BLINK_TIMER}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Blink %i\\r\\n", BlinkCounter); }}}\par\pard
+\cbpat1{{\cf2{}}					{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{BlinkCounter}} {\cf11{==}} {\cf2{NUM_BLINKS}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{PAUSE_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf14{int}} {\cf2{LedToBlink}} {\cf11{=}} {\cf2{RandomPattern}}{\cf11{[}}{\cf2{BlinkCounter}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{LedToBlink}}{\cf11{] =}} {\cf2{ON}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{BLINK_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}} {\cf2{}}{\cf13{else if}} {\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{StopSimon}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{				CurrentState}} {\cf11{=}} {\cf2{Inactive}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{DebouncingTwo}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{==}} {\cf2{ES_TIMEOUT}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{SIMON_DEBOUNCE_TIMER}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{					CurrentState}} {\cf11{=}} {\cf2{SamplingTwo}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}} {\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{SIMON_BLINK_TIMER}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf5{//printf("Blink %i\\r\\n", BlinkCounter); }}}\par\pard
+\cbpat1{{\cf2{}}					{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{BlinkCounter}} {\cf11{==}} {\cf2{NUM_BLINKS}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{PAUSE_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++)}} {\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{OFF}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf14{int}} {\cf2{LedToBlink}} {\cf11{=}} {\cf2{RandomPattern}}{\cf11{[}}{\cf2{BlinkCounter}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{						LedArray}}{\cf11{[}}{\cf2{LedToBlink}}{\cf11{] =}} {\cf2{ON}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{						BlinkCounter}} {\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}						{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SIMON_BLINK_TIMER}}{\cf11{,}} {\cf2{BLINK_TIME}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}					{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			}\par\pard
+\cbpat1{    {\cf13{default}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}                             }\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{ReturnEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/***************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ private functions}}}\par\pard
+\cbpat1{{\cf6{ ***************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b Delay\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{unsigned int}} {\cf2{waitTime}}{\cf11{) \{}} {\cf2{}}{\cf5{//waits in ms}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{unsigned int}} {\cf2{startTime}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{unsigned int}} {\cf2{currentTime}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}} }\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf13{while}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{		currentTime}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{currentTime}} {\cf11{==}} {\cf2{startTime}} {\cf11{+}} {\cf2{waitTime}}{\cf11{)}} {\cf2{}}{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b PrintCharBinary\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{char}} {\cf2{c}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}} {\cf11{=}} {\cf2{}}{\cf4{{7}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{>=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{; --}}{\cf2{i}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}        {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{( (}}{\cf2{c}} {\cf11{& (}}{\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{<<}} {\cf2{i}}{\cf11{))}} {\cf2{?}} {\cf3{"{1}"}}{\cf2{}} {\cf11{:}} {\cf2{}}{\cf3{"{0}"}}{\cf2{}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}{\cf2{}}{\cf5{//\\n");}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b SetRandomPattern\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b PatternIsCorrect\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{SelectedLeds}}{\cf11{[}}{\cf2{i}}{\cf11{] !=}} {\cf2{RandomPattern}}{\cf11{[}}{\cf2{i}}{\cf11{])}} {\cf2{}}{\cf13{return false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{char}} {\cf2{}}{\cf16{\b ReadData\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//setting clock and shift/load pins to starting state}}}\par\pard
+\cbpat1{{\cf2{		REGISTER_PORT}} {\cf11{|=}} {\cf2{SHIFT_LOAD_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{		REGISTER_PORT}} {\cf11{&= ~}}{\cf2{CLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{		{\cf5{//pulse the shift/load pin}}}\par\pard
+\cbpat1{{\cf2{    REGISTER_PORT}} {\cf11{&= ~}}{\cf2{SHIFT_LOAD_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    REGISTER_PORT}} {\cf11{|=}} {\cf2{SHIFT_LOAD_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{    {\cf14{char}} {\cf2{data}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{			data}} {\cf11{<<=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{REGISTER_PORT}} {\cf11{&}} {\cf2{SERIAL_IN_PIN}}{\cf11{) !=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{				data}} {\cf11{|=}} {\cf2{BIT{0}HI}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//Pulse the clock pin}}}\par\pard
+\cbpat1{{\cf2{			REGISTER_PORT}} {\cf11{|=}} {\cf2{CLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			REGISTER_PORT}} {\cf11{&= ~}}{\cf2{CLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}} {\cf2{data}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b CheckButtonPad\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static char}} {\cf2{LastButtonState}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{char}} {\cf2{CurrentButtonState}} {\cf11{=}} {\cf2{}}{\cf16{\b ReadData\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//PrintCharBinary(CurrentButtonState);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{!=}} {\cf2{LastButtonState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{LastButtonState}} {\cf11{&}} {\cf2{BitmaskArray}}{\cf11{[}}{\cf2{i}}{\cf11{]) ==}} {\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{&& (}}{\cf2{CurrentButtonState}} {\cf11{&}} {\cf2{BitmaskArray}}{\cf11{[}}{\cf2{i}}{\cf11{]) !=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf5{//printf("Button %i\\r\\n", i);}}}\par\pard
+\cbpat1{{\cf2{				ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ButtonPadPressed}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{i}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b PostSimon\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{				ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{\}}}  }\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{	LastButtonState}} {\cf11{=}} {\cf2{CurrentButtonState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b ReloadLeds\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//printf("Reload: ");}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{// set rclk and srclk pins low to prepare to pulse high}}}\par\pard
+\cbpat1{{\cf2{	REGISTER_PORT}} {\cf11{&= ~}}{\cf2{RCLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{	REGISTER_PORT}} {\cf11{&= ~}}{\cf2{SRCLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{LedArray}}{\cf11{[}}{\cf2{i}}{\cf11{] ==}} {\cf2{OFF}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("{1}");}}}\par\pard
+\cbpat1{{\cf2{			REGISTER_PORT}} {\cf11{|=}} {\cf2{SERIAL_OUT_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{			REGISTER_PORT}} {\cf11{&= ~}}{\cf2{SERIAL_OUT_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("{0}");}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//pulse the rclk}}}\par\pard
+\cbpat1{{\cf2{		REGISTER_PORT}} {\cf11{|=}} {\cf2{RCLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{		REGISTER_PORT}} {\cf11{&= ~}}{\cf2{RCLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{//printf("\\r\\n");}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// pulse the srclk}}}\par\pard
+\cbpat1{{\cf2{	REGISTER_PORT}} {\cf11{|=}} {\cf2{SRCLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{	REGISTER_PORT}} {\cf11{&= ~}}{\cf2{SRCLK_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/***************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ test harness}}}\par\pard
+\cbpat1{{\cf6{ ***************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#ifdef test}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{int}} {\cf2{}}{\cf16{\b main\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}}{\cf2{}}}\par\pard
+\cbpat1{}}

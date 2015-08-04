@@ -1,0 +1,307 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{   EventCheckers.c}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Revision}}}\par\pard
+\cbpat1{{\cf6{   {1}.{0}.{1} }}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   This is the sample for writing event checkers along with the event }}}\par\pard
+\cbpat1{{\cf6{   checkers used in the basic framework test harness.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   Note the use of static variables in sample event checker to detect}}}\par\pard
+\cbpat1{{\cf6{   ONLY transitions.}}}\par\pard
+\cbpat1{{\cf6{   }}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{6}/{1}{3} {1}{3}:{3}{6} jec     initial version}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf5{// this will pull in the symbolic definitions for events, which we will want}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// to post in response to detecting events}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// this will get us the structure definition for events, which we will need}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// in order to post events in response to detecting events}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Events.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// if you want to use distribution lists then you need those function }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// definitions too.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_PostList.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// This include will pull in all of the headers from the service modules}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// providing the prototypes for all of the post functions}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_ServiceHeaders.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// this test harness for the framework references the serial routines that}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// are defined in ES_Port.c}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// include our own prototypes to insure consistency between header & }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// actual functionsdefinition}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"EventCheckers.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Framework.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_DeferRecall.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/pin_map.h"}}{\cf8{}}	{\cf5{// Define PART_TM{4}C{1}{2}{3}GH{6}PM in project}}}\par\pard
+\cbpat1{{\cf8{}}{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"EnablePA{2}{5}_PB{2}{3}_PD{7}_PF{0}.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"Inits.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"GameManager.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"StartButton.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{{\cf8{#define ALL_BITS ({0}xff<<{2}) }}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define ONE_SEC {9}{7}{6}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define HALF_SEC (ONE_SEC/{2})}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define LIGHT_DB_DELAY {1}{0}{0}{0}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define START_BUTTON_PORT HWREG(GPIO_PORTB_BASE + GPIO_O_DATA + ALL_BITS)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define START_BUTTON_ONE_PIN GPIO_PIN_{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define START_BUTTON_TWO_PIN GPIO_PIN_{1}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define GONG_PORT HWREG(GPIO_PORTB_BASE + GPIO_O_DATA + ALL_BITS)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define GONG_ONE_PIN GPIO_PIN_{2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define GONG_TWO_PIN GPIO_PIN_{3}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define GAME_BUTTON_PORT HWREG(GPIO_PORTF_BASE+(GPIO_O_DATA+ ALL_BITS))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define BUTTON_ONE_PIN GPIO_PIN_{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define BUTTON_TWO_PIN GPIO_PIN_{4}}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{{\cf8{#define REGISTER_PORT HWREG(GPIO_PORTE_BASE+(GPIO_O_DATA + ALL_BITS))}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define CLK_PIN GPIO_PIN_{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SHIFT_LOAD_PIN GPIO_PIN_{4}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SERIAL_IN_PIN GPIO_PIN_{5}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define BEAM_PORT HWREG(GPIO_PORTD_BASE+(GPIO_O_DATA + ALL_BITS))}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define BEAM_ONE_PIN GPIO_PIN_{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define BEAM_TWO_PIN GPIO_PIN_{1}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//static int Dial{1}Position_{0}, Dial{1}Position_{1};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static int Dial{1}PosMapped_{1};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static int Dial{1}PosMapped_{0};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   Check{4}Keystroke}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   None}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   bool: true if a new key was detected & posted}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   checks to see if a new key from the keyboard is detected and, if so, }}}\par\pard
+\cbpat1{{\cf6{   retrieves the key and posts an ES_NewKey event to TestHarnessService{0}}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   The functions that actually check the serial hardware for characters}}}\par\pard
+\cbpat1{{\cf6{   and retrieve them are assumed to be in ES_Port.c}}}\par\pard
+\cbpat1{{\cf6{   Since we always retrieve the keystroke when we detect it, thus clearing the}}}\par\pard
+\cbpat1{{\cf6{   hardware flag that indicates that a new key is ready this event checker }}}\par\pard
+\cbpat1{{\cf6{   will only generate events on the arrival of new characters, even though we}}}\par\pard
+\cbpat1{{\cf6{   do not internally keep track of the last keystroke that we retrieved.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{8}/{0}{6}/{1}{3}, {1}{3}:{4}{8}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b Check{4}Keystroke\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{}}{\cf16{\b IsNewKeyReady\b0 }}{\cf2{}}{\cf11{() )}} {\cf2{}}{\cf5{// new key waiting?}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_NEW_KEY}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{    ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf16{\b GetNewKey\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// test distribution list functionality by sending the 'L' key out via}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// a distribution list.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{}}{\cf3{'L'}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b ES_PostList{0}{0}\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}} {\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}}   {\cf2{}}{\cf5{// otherwise post to Service {0} for processing}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PostTestHarnessService{0}\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ThisEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{	}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf5{// Event Checker to see if the light was broken}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{bool}} {\cf2{}}{\cf16{\b LightBroken\b0 }} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static int}} {\cf2{LitIn{1}}}{\cf11{,}} {\cf2{LitIn{2}}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static int}} {\cf2{LitIn{1}New}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static int}} {\cf2{LitIn{2}New}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{// Obtain initial state of light broken inputs (x{2} inputs)}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{char}} {\cf2{BeamState}} {\cf11{=}} {\cf2{BEAM_PORT}} {\cf11{& (}}{\cf2{BEAM_ONE_PIN}} {\cf11{|}} {\cf2{BEAM_TWO_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{	LitIn{1}New}} {\cf11{=}} {\cf2{BEAM_PORT}} {\cf11{&}} {\cf2{BEAM_ONE_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{	LitIn{2}New}} {\cf11{=}} {\cf2{BEAM_PORT}} {\cf11{&}} {\cf2{BEAM_TWO_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{//for (int i = {7}; i >= {0}; --i)\{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//printf( (BeamState & ({1} << i)) ? "{1}" : "{0}" );}}}\par\pard
+\cbpat1{{\cf2{}} {\cf5{// \}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{//printf("\\r");//\\n");}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{// Init the timer checking values }}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Time checking so that the input does not oscillate too much)}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static int}} {\cf2{time{1}}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static int}} {\cf2{time{2}}} {\cf11{=}} {\cf2{LIGHT_DB_DELAY}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{// Check to make sure that enough time has passed to prompt sending a new event}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// This is to eliminate break/unbreak from causing too many events)}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{time{2}}}{\cf11{-}}{\cf2{time{1}}}{\cf11{)>}}{\cf2{LIGHT_DB_DELAY}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{// Do if light input has changed from previous state}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{((}}{\cf2{LitIn{1}New}}{\cf11{!=}}{\cf2{LitIn{1}}}{\cf11{)||(}}{\cf2{LitIn{2}New}}{\cf11{!=}}{\cf2{LitIn{2}}}{\cf11{)) \{}}}\par\pard
+\cbpat1{{\cf2{			ES_Event ThisEvent{1}}}{\cf11{,}} {\cf2{ThisEvent{2}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			}\par\pard
+\cbpat1{			{\cf5{// Set the event types}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent{1}}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{PlayerOneBeam}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent{2}}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{PlayerTwoBeam}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{			{\cf5{// Post the event to the game manager}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostGameManager\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent{1}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostGameManager\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent{2}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			}\par\pard
+\cbpat1{			{\cf5{// Reset the DB times}}}\par\pard
+\cbpat1{{\cf2{			time{1}}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{			time{2}}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Beam Break}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{			ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{			ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{else}} {\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{// Increment time{2} to make sure that the we can eventually sense new light breaker events}}}\par\pard
+\cbpat1{{\cf2{		time{2}}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Reset the initial state pins to the last state pins}}}\par\pard
+\cbpat1{{\cf2{	LitIn{1}}} {\cf11{=}} {\cf2{LitIn{1}New}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{	LitIn{2}}} {\cf11{=}} {\cf2{LitIn{2}New}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b CheckStartButtonEvents\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static uint{8}_t}} {\cf2{LastButtonState}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{8}_t}} {\cf2{CurrentButtonState}} {\cf11{=}} {\cf2{START_BUTTON_PORT}} {\cf11{& (}}{\cf2{START_BUTTON_ONE_PIN}} {\cf11{|}} {\cf2{START_BUTTON_TWO_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//	for (int i = {7}; i >= {0}; --i)\{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//		printf( (CurrentButtonState & ({1} << i)) ? "{1}" : "{0}" );}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//  \}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//  printf("\\r");}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{!=}} {\cf2{LastButtonState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{== (}}{\cf2{START_BUTTON_ONE_PIN}} {\cf11{|}} {\cf2{START_BUTTON_TWO_PIN}}{\cf11{))  \{}} }\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Start Button {1}}} {\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{			ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{StartButtonPressed}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostStartButtonDebounceSM\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{		ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{	LastButtonState}} {\cf11{=}} {\cf2{CurrentButtonState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{bool CheckStartButtonTwoEvents(void) \{}}}\par\pard
+\cbpat1{{\cf6{	static uint{8}_t LastButtonState = {0};}}}\par\pard
+\cbpat1{{\cf6{	uint{8}_t CurrentButtonState = START_BUTTON_PORT & START_BUTTON_TWO_PIN;}}}\par\pard
+\cbpat1{{\cf6{	bool ReturnVal = false;}}}\par\pard
+\cbpat1{{\cf6{	if (CurrentButtonState != LastButtonState) \{}}}\par\pard
+\cbpat1{{\cf6{		if (CurrentButtonState == START_BUTTON_TWO_PIN)  \{ }}}\par\pard
+\cbpat1{{\cf6{			puts("Start Button Two Pressed\\r\\n");}}}\par\pard
+\cbpat1{{\cf6{			ES_Event ThisEvent;}}}\par\pard
+\cbpat1{{\cf6{			ThisEvent.EventType = StartButtonTwoPressed;}}}\par\pard
+\cbpat1{{\cf6{			PostButtonDebounceSM(ThisEvent);}}}\par\pard
+\cbpat1{{\cf6{		\}}}}\par\pard
+\cbpat1{{\cf6{		ReturnVal = true;}}}\par\pard
+\cbpat1{{\cf6{	\}}}}\par\pard
+\cbpat1{{\cf6{	LastButtonState = CurrentButtonState;}}}\par\pard
+\cbpat1{{\cf6{	return ReturnVal;}}}\par\pard
+\cbpat1{{\cf6{\}*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b CheckGameButtonOneEvents\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static uint{8}_t}} {\cf2{LastButtonState}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{8}_t}} {\cf2{CurrentButtonState}} {\cf11{=}} {\cf2{GAME_BUTTON_PORT}} {\cf11{&}} {\cf2{BUTTON_ONE_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{!=}} {\cf2{LastButtonState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{==}} {\cf2{BUTTON_ONE_PIN}}{\cf11{)  \{}} }\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b puts\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Game Button One Pressed}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{			ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{GameButtonOneDown}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostGameButtonDebounceSM\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{		ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{	LastButtonState}} {\cf11{=}} {\cf2{CurrentButtonState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b CheckGameButtonTwoEvents\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static uint{8}_t}} {\cf2{LastButtonState}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{8}_t}} {\cf2{CurrentButtonState}} {\cf11{=}} {\cf2{GAME_BUTTON_PORT}} {\cf11{&}} {\cf2{BUTTON_TWO_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{!=}} {\cf2{LastButtonState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentButtonState}} {\cf11{==}} {\cf2{BUTTON_TWO_PIN}}{\cf11{)  \{}} }\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b puts\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Game Button Two Pressed}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{			ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{GameButtonTwoDown}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostGameButtonDebounceSM\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{		ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{	LastButtonState}} {\cf11{=}} {\cf2{CurrentButtonState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b CheckGongOneEvents\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static uint{8}_t}} {\cf2{LastGongState}} {\cf11{=}} {\cf2{GONG_ONE_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{8}_t}} {\cf2{CurrentGongState}} {\cf11{=}} {\cf2{GONG_PORT}} {\cf11{&}} {\cf2{GONG_ONE_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentGongState}} {\cf11{!=}} {\cf2{LastGongState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentGongState}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)  \{}} }\par\pard
+\cbpat1{{\cf2{			ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{GongOneDown}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostGongDebounceSM\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{		ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{	LastGongState}} {\cf11{=}} {\cf2{CurrentGongState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b CheckGongTwoEvents\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static uint{8}_t}} {\cf2{LastGongState}} {\cf11{=}} {\cf2{GONG_TWO_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{8}_t}} {\cf2{ReadGongs}} {\cf11{=}} {\cf2{GONG_PORT}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{8}_t}} {\cf2{CurrentGongState}} {\cf11{=}} {\cf2{GONG_PORT}} {\cf11{&}} {\cf2{GONG_TWO_PIN}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{bool}} {\cf2{ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}} {\cf11{=}} {\cf2{}}{\cf4{{7}}}{\cf2{}}{\cf11{;}} {\cf2{i}} {\cf11{>=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{; --}}{\cf2{i}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{((}}{\cf2{ReadGongs}} {\cf11{& (}}{\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{<<}} {\cf2{i}}{\cf11{))}} {\cf2{?}} {\cf3{"{1}"}}{\cf2{}} {\cf11{:}} {\cf2{}}{\cf3{"{0}"}}{\cf2{}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentGongState}} {\cf11{!=}} {\cf2{LastGongState}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{CurrentGongState}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)  \{}} }\par\pard
+\cbpat1{{\cf2{			ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{GongTwoDown}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostGongDebounceSM\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{		ReturnVal}} {\cf11{=}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{	LastGongState}} {\cf11{=}} {\cf2{CurrentGongState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{return}} {\cf2{ReturnVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}{\cf2{}}}\par\pard
+\cbpat1{}}

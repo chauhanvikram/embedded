@@ -1,0 +1,75 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{// ADMulti.c}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Setup up ADC{0} to convert up to {4} channels using SS{2}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/tm{4}c{1}{2}{3}gh{6}pm.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ADMulti.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static const uint{3}{2}_t}} {\cf2{HowMany{2}Mask}}{\cf11{[}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{] = \{}}{\cf2{}}{\cf4{{0}x{0}{1}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{3}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{7}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}F}}{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// this mapping puts PE{0} as resuult {0}, PE{1} as result {1}...}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static const uint{3}{2}_t}} {\cf2{HowMany{2}Mux}}{\cf11{[}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{] = \{}}{\cf2{}}{\cf4{{0}x{0}{3}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{2}{3}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{1}{2}{3}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{1}{2}{3}}}{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static const uint{3}{2}_t}} {\cf2{HowMany{2}CTL}}{\cf11{[}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{] = \{}}{\cf2{ADC_SSCTL{2}_END{0}}}{\cf11{|}}{\cf2{ADC_SSCTL{2}_IE{0}}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                        ADC_SSCTL{2}_END{1}}}{\cf11{|}}{\cf2{ADC_SSCTL{2}_IE{1}}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                        ADC_SSCTL{2}_END{2}}}{\cf11{|}}{\cf2{ADC_SSCTL{2}_IE{2}}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                        ADC_SSCTL{2}_END{3}}}{\cf11{|}}{\cf2{ADC_SSCTL{2}_IE{3}}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static uint{8}_t}} {\cf2{NumChannelsConverting}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// initialize the A/D converter to convert on {1}-{4} channels}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b ADC_MultiInit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{HowMany}}{\cf11{)\{}} }\par\pard
+\cbpat1{{\cf2{}}  {\cf15{volatile}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{delay}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{index}} {\cf11{=}} {\cf2{HowMany}}{\cf11{-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// index into the HowMany{2}Mask array}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf5{// first sanity check on the HowMany parameter}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{( (}}{\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{==}} {\cf2{HowMany}}{\cf11{) || (}}{\cf2{}}{\cf4{{4}}} {\cf2{}}{\cf11{<}} {\cf2{HowMany}}{\cf11{))}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{return}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  }\par\pard
+\cbpat1{  NumChannelsConverting}} {\cf11{=}} {\cf2{HowMany}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  }\par\pard
+\cbpat1{  SYSCTL_RCGCADC_R}} {\cf11{|=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{0}{0}{0}{0}{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// {1}) activate ADC{0}}}}\par\pard
+\cbpat1{{\cf2{  SYSCTL_RCGCGPIO_R}} {\cf11{|=}} {\cf2{SYSCTL_RCGCGPIO_R{4}}}{\cf11{;}} {\cf2{}}{\cf5{// {1}) activate clock for Port E}}}\par\pard
+\cbpat1{{\cf2{  delay}} {\cf11{=}} {\cf2{SYSCTL_RCGCGPIO_R}}{\cf11{;}}      {\cf2{}}{\cf5{// {2}) allow time for clock to stabilize}}}\par\pard
+\cbpat1{{\cf2{  delay}} {\cf11{=}} {\cf2{SYSCTL_RCGCGPIO_R}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  GPIO_PORTE_DIR_R}} {\cf11{&= ~}}{\cf2{HowMany{2}Mask}}{\cf11{[}}{\cf2{index}}{\cf11{];}}      {\cf2{}}{\cf5{// {3}) make PE{0}, PE{1}, PE{2}, PE{3} input}}}\par\pard
+\cbpat1{{\cf2{  GPIO_PORTE_AFSEL_R}} {\cf11{|=}} {\cf2{HowMany{2}Mask}}{\cf11{[}}{\cf2{index}}{\cf11{];}}     {\cf2{}}{\cf5{// {4}) enable alternate function on PE{0} - PE{3}}}}\par\pard
+\cbpat1{{\cf2{  GPIO_PORTE_DEN_R}} {\cf11{&= ~}}{\cf2{HowMany{2}Mask}}{\cf11{[}}{\cf2{index}}{\cf11{];}}      {\cf2{}}{\cf5{// {5}) disable digital I/O on PE{0} - PE{3}}}}\par\pard
+\cbpat1{{\cf2{  GPIO_PORTE_AMSEL_R}} {\cf11{|=}} {\cf2{HowMany{2}Mask}}{\cf11{[}}{\cf2{index}}{\cf11{];}}     {\cf2{}}{\cf5{// {6}) enable analog functionality on PE{4} PE{5}}}}\par\pard
+\cbpat1{{\cf2{  }\par\pard
+\cbpat1{  ADC{0}_PC_R}} {\cf11{&= ~}}{\cf2{}}{\cf4{{0}xF}}{\cf2{}}{\cf11{;}}              {\cf2{}}{\cf5{// {8}) clear max sample rate field}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_PC_R}} {\cf11{|=}} {\cf2{}}{\cf4{{0}x{1}}}{\cf2{}}{\cf11{;}}               {\cf2{}}{\cf5{//    configure for {1}{2}{5}K samples/sec}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_SSPRI_R}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{3}{2}{1}{0}}}{\cf2{}}{\cf11{;}}          {\cf2{}}{\cf5{// {9}) Sequencer {3} is lowest priority}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_ACTSS_R}} {\cf11{&= ~}}{\cf2{}}{\cf4{{0}x{0}{0}{0}{4}}}{\cf2{}}{\cf11{;}}        {\cf2{}}{\cf5{// {1}{0}) disable sample sequencer {2}}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_EMUX_R}} {\cf11{&= ~}}{\cf2{}}{\cf4{{0}x{0}F{0}{0}}}{\cf2{}}{\cf11{;}}         {\cf2{}}{\cf5{// {1}{1}) seq{2} is software trigger}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_SSMUX{2}_R}} {\cf11{=}} {\cf2{HowMany{2}Mux}}{\cf11{[}}{\cf2{index}}{\cf11{];}}         {\cf2{}}{\cf5{// {1}{2}) set channels for SS{2}}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_SSCTL{2}_R}} {\cf11{=}} {\cf2{HowMany{2}CTL}}{\cf11{[}}{\cf2{index}}{\cf11{];}}         {\cf2{}}{\cf5{// {1}{3}) set which sample is last}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_IM_R}} {\cf11{&= ~}}{\cf2{}}{\cf4{{0}x{0}{0}{0}{4}}}{\cf2{}}{\cf11{;}}           {\cf2{}}{\cf5{// {1}{4}) disable SS{2} interrupts}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_ACTSS_R}} {\cf11{|=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{4}}}{\cf2{}}{\cf11{;}}         {\cf2{}}{\cf5{// {1}{5}) enable sample sequencer {2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//------------ADC_MultiRead------------}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Triggers A/D conversion and waits for result}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Input: none}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Output: up to {4} {1}{2}-bit result of ADC conversions}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// software trigger, busy-wait sampling, takes about {1}{8}.{6}uS to execute}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// data returned by reference}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// lowest numbered converted channel is in data[{0}]}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b ADC_MultiRead\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{data}}{\cf11{[}}{\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{])\{}} }\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{8}_t}} {\cf2{i}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  }\par\pard
+\cbpat1{  ADC{0}_PSSI_R}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{4}}}{\cf2{}}{\cf11{;}}               {\cf2{}}{\cf5{// {1}) initiate SS{2}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{while}}{\cf2{}}{\cf11{((}}{\cf2{ADC{0}_RIS_R}}{\cf11{&}}{\cf2{}}{\cf4{{0}x{0}{4}}}{\cf2{}}{\cf11{)==}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\{\};}}                                 {\cf2{}}{\cf5{// {2}) wait for conversion(s) to complete}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{i}}{\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}} {\cf2{NumChannelsConverting}}{\cf11{;}} {\cf2{i}}{\cf11{++)\{}}}\par\pard
+\cbpat1{{\cf2{    data}}{\cf11{[}}{\cf2{i}}{\cf11{] =}} {\cf2{ADC{0}_SSFIFO{2}_R}}{\cf11{&}}{\cf2{}}{\cf4{{0}xFFF}}{\cf2{}}{\cf11{;}}   {\cf2{}}{\cf5{// {3}) read result, one at a time}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{  ADC{0}_ISC_R}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{4}}}{\cf2{}}{\cf11{;}}                {\cf2{}}{\cf5{// {4}) acknowledge completion, clear int}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}{\cf2{}}}\par\pard
+\cbpat1{}}

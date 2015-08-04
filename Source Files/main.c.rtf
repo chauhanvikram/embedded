@@ -1,0 +1,72 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdbool.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/interrupt.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"utils/uartstdio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Framework.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"termio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define clrScrn() 	printf(}}{\cf9{"}}{\cf7{\\x{1}b}}{\cf9{[{2}J"}}{\cf8{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define goHome()	printf(}}{\cf9{"}}{\cf7{\\x{1}b}}{\cf9{[{1},{1}H"}}{\cf8{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define clrLine()	printf(}}{\cf9{"}}{\cf7{\\x{1}b}}{\cf9{[K"}}{\cf8{)}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{int}} {\cf2{}}{\cf16{\b main\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}  }\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Set the clock to run at {4}{0}MhZ using the PLL and {1}{6}MHz external crystal}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b SysCtlClockSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_SYSDIV_{5}}} {\cf11{|}} {\cf2{SYSCTL_USE_PLL}} {\cf11{|}} {\cf2{SYSCTL_OSC_MAIN}}}\par\pard
+\cbpat1{			{\cf11{|}} {\cf2{SYSCTL_XTAL_{1}{6}MHZ}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b TERMIO_Init\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b clrScrn\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{	ES_Return_t ErrorType}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{	{\cf5{// When doing testing, it is useful to announce just which program}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// is running.}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b puts\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\r}}{\cf3{Starting Test Harness for}} {\cf7{\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"the {2}nd Generation Events & Services Framework V{2}.{2}}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"%s %s}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{,}}{\cf2{__TIME__}}{\cf11{,}} {\cf2{__DATE__}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"}}{\cf7{\\n\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Press any key to post key-stroke events to Service {0}}}{\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Press 'd' to test event deferral}} {\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Press 'r' to test event recall}} {\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf5{// Your hardware initialization function calls go here}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf5{// now initialize the Events and Services Framework and start it running}}}\par\pard
+\cbpat1{{\cf2{	ErrorType}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Initialize\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ES_Timer_RATE_{1}mS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{ErrorType}} {\cf11{==}} {\cf2{Success}} {\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{	  ErrorType}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Run\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//if we got to here, there was an error}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{switch}} {\cf2{}}{\cf11{(}}{\cf2{ErrorType}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}	  {\cf13{case}} {\cf2{FailedPost}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Failed on attempt to Post}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	  {\cf13{case}} {\cf2{FailedPointer}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Failed on NULL pointer}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	  {\cf13{case}} {\cf2{FailedInit}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Failed Initialization}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	 {\cf13{default}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"Other Failure}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{for}}{\cf2{}}{\cf11{(;;)}}}\par\pard
+\cbpat1{{\cf2{}}	  {\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf11{\}}}{\cf2{}}}\par\pard
+\cbpat1{}}

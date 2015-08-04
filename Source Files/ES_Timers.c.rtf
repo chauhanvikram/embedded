@@ -1,0 +1,318 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{     ES_Timers.c}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     This is a module implementing  {8} {1}{6} bit timers all using the RTI}}}\par\pard
+\cbpat1{{\cf6{     timebase}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     Everything is done in terms of RTI Ticks, which can change from}}}\par\pard
+\cbpat1{{\cf6{     application to application.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{7}/{1}{4} {1}{4}:{0}{2} jec      moved ticking of 'time' to ES_Port to allow it to tick}}}\par\pard
+\cbpat1{{\cf6{                         even while blocking. required change to ES_GetTime too}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{0}/{1}{3} {1}{0}:{4}{8} jec      moved definition of BITS_PER_BYTE to ES_General.h}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{1}{3}/{1}{3} {1}{2}:{0}{5} jec      moved the hardware specific code to ES_Port.c and}}}\par\pard
+\cbpat1{{\cf6{                         made the Tick response a routine called from there.}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{6}/{1}{2} {0}{9}:{4}{2} jec      added some more error checking to start & init}}}\par\pard
+\cbpat1{{\cf6{                         funcs to prevent starting a timer with no}}}\par\pard
+\cbpat1{{\cf6{                         service attached or with a time of {0}}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {1}{6}:{4}{6} jec      convert to Gen{2} of Events & Services framework}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{1}/{1}{1} {1}{8}:{2}{6} jec      begin conversion to work with the new Event Framework}}}\par\pard
+\cbpat1{{\cf6{ {0}{9}/{0}{1}/{0}{5} {1}{3}:{1}{6} jec      converted the return types and parameters to use the}}}\par\pard
+\cbpat1{{\cf6{                         enumerated constants from the new header.}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{3}{1}/{0}{5} {1}{0}:{2}{3} jec      converted several return value tests in the test harness}}}\par\pard
+\cbpat1{{\cf6{                         to use symbolic values.}}}\par\pard
+\cbpat1{{\cf6{ {0}{6}/{1}{5}/{0}{4} {0}{9}:{5}{6} jec      converted all external prefixes to TMRS{1}{2} to be sure}}}\par\pard
+\cbpat1{{\cf6{                         that we don't have any conflicts with the old libs}}}\par\pard
+\cbpat1{{\cf6{ {0}{5}/{2}{8}/{0}{4} {1}{3}:{5}{3} jec      converted for {9}S{1}{2}C{3}{2} processor}}}\par\pard
+\cbpat1{{\cf6{ {1}{2}/{1}{1}/{0}{2} {1}{4}:{5}{3} dos      converted for ICC{1}{1}V{6}, unadorned char needs to be}}}\par\pard
+\cbpat1{{\cf6{                         called out as signed char, default is now unsigned}}}\par\pard
+\cbpat1{{\cf6{                         for a plain char.}}}\par\pard
+\cbpat1{{\cf6{ {1}{1}/{2}{4}/{9}{9} {1}{4}:{4}{5} rmo		 updated to compile under ICC{1}{1}v{5}.}}}\par\pard
+\cbpat1{{\cf6{ {0}{2}/{2}{4}/{9}{7} {1}{7}:{1}{3} jec      added new function TMR_SetTimer. This will allow one}}}\par\pard
+\cbpat1{{\cf6{ 			             function to set up the time, while another function}}}\par\pard
+\cbpat1{{\cf6{            			 actually initiates the timing.}}}\par\pard
+\cbpat1{{\cf6{ {0}{2}/{2}{4}/{9}{7} {1}{3}:{3}{4} jec      Began Coding}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Include Files -----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Framework.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_ServiceHeaders.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_General.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Events.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_PostList.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_LookupTables.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Timers.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*--------------------------- External Variables --------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Module Defines ----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*------------------------------ Module Types -----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{   the size of Tflag sets the number of timers, uint{8} = {8}, uint{1}{6} = {1}{6} ...)}}}\par\pard
+\cbpat1{{\cf6{   to add more timers, you will need to change the data type and modify}}}\par\pard
+\cbpat1{{\cf6{   the initialization of TMR_TimerArray and TMR_MaskArray}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{Tflag_t}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{Timer_t}}{\cf11{;}} {\cf2{}}{\cf5{// sets size of timers to {1}{6} bits}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Functions ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Variables ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{Timer_t TMR_TimerArray}}{\cf11{[}}{\cf2{}}{\cf13{sizeof}}{\cf2{}}{\cf11{(}}{\cf2{Tflag_t}}{\cf11{)*}}{\cf2{BITS_PER_BYTE}}{\cf11{]=}}}\par\pard
+\cbpat1{{\cf2{}}                                            {\cf11{\{}} {\cf2{}}{\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}} }\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}}{\cf2{}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{}}                                              {\cf4{{0}x{0}}} {\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{Tflag_t TMR_ActiveFlags}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{pPostFunc}} {\cf14{const}} {\cf2{Timer{2}PostFunc}}{\cf11{[}}{\cf2{}}{\cf13{sizeof}}{\cf2{}}{\cf11{(}}{\cf2{Tflag_t}}{\cf11{)*}}{\cf2{BITS_PER_BYTE}}{\cf11{] =}} }\par\pard
+\cbpat1{{\cf2{}}                                            {\cf11{\{}} {\cf2{TIMER{0}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{2}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{3}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{4}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{5}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{6}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{7}_RESP_FUNC}}{\cf11{,}} }\par\pard
+\cbpat1{{\cf2{                                              TIMER{8}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{9}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}{0}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}{1}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}{2}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}{3}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}{4}_RESP_FUNC}}{\cf11{,}}}\par\pard
+\cbpat1{{\cf2{                                              TIMER{1}{5}_RESP_FUNC}}}\par\pard
+\cbpat1{                                              {\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*------------------------------ Module Code ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_Init}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     unsigned char Rate set to one of the TMR_RATE_XX values to set the}}}\par\pard
+\cbpat1{{\cf6{     tick rate these are defined by the hardware and placed in ES_Port.h}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Initializes the timer module by setting up the tick at the requested}}}\par\pard
+\cbpat1{{\cf6{    rate}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{4}:{2}{3}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b ES_Timer_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TimerRate_t Rate}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// call the hardware init routine}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b _HW_Timer_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Rate}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_SetTimer}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     unsigned char Num, the number of the timer to set.}}}\par\pard
+\cbpat1{{\cf6{     unsigned int NewTime, the new time to set on that timer}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_ERR if requested timer does not exist or has no service }}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_OK  otherwise}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     sets the time for a timer, but does not make it active.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{7}:{1}{1}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_TimerReturn_t}} {\cf16{\b ES_Timer_SetTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{,}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{NewTime}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf6{/* tried to set a timer that doesn't exist */}}{\cf2{}}}\par\pard
+\cbpat1{   {\cf13{if}}{\cf2{}}{\cf11{( (}}{\cf2{Num}} {\cf11{>=}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TMR_TimerArray}}{\cf11{)) ||}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf6{/* tried to set a timer without a service */}}{\cf2{}}}\par\pard
+\cbpat1{       {\cf11{(}}{\cf2{Timer{2}PostFunc}}{\cf11{[}}{\cf2{Num}}{\cf11{] ==}} {\cf2{TIMER_UNUSED}}{\cf11{) ||}}}\par\pard
+\cbpat1{{\cf2{}}       {\cf11{(}}{\cf2{NewTime}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) )}} {\cf2{}}{\cf6{/* no time being set */}}{\cf2{}}}\par\pard
+\cbpat1{      {\cf13{return}} {\cf2{ES_Timer_ERR}}{\cf11{;}}  }\par\pard
+\cbpat1{{\cf2{   TMR_TimerArray}}{\cf11{[}}{\cf2{Num}}{\cf11{] =}} {\cf2{NewTime}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}} {\cf2{ES_Timer_OK}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_StartTimer}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     unsigned char Num the number of the timer to start}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_ERR for error ES_Timer_OK for success}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     simply sets the active flag in TMR_ActiveFlags to (re)start a}}}\par\pard
+\cbpat1{{\cf6{     stopped timer.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{4}:{4}{5}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_TimerReturn_t}} {\cf16{\b ES_Timer_StartTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf6{/* tried to set a timer that doesn't exist */}}{\cf2{}}}\par\pard
+\cbpat1{   {\cf13{if}}{\cf2{}}{\cf11{( (}}{\cf2{Num}} {\cf11{>=}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TMR_TimerArray}}{\cf11{)) ||}}}\par\pard
+\cbpat1{{\cf2{}}       {\cf6{/* tried to set a timer with no time on it */}}{\cf2{}}}\par\pard
+\cbpat1{       {\cf11{(}}{\cf2{TMR_TimerArray}}{\cf11{[}}{\cf2{Num}}{\cf11{] ==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) )}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}} {\cf2{ES_Timer_ERR}}{\cf11{;}}  }\par\pard
+\cbpat1{{\cf2{   TMR_ActiveFlags}} {\cf11{|=}} {\cf2{BitNum{2}SetMask}}{\cf11{[}}{\cf2{Num}}{\cf11{];}} {\cf2{}}{\cf6{/* set timer as active */}}{\cf2{}}}\par\pard
+\cbpat1{   {\cf13{return}} {\cf2{ES_Timer_OK}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_StopTimer}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     unsigned char Num the number of the timer to stop.}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_ERR for error (timer doesn't exist) ES_Timer_OK for success.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     simply clears the bit in TMR_ActiveFlags associated with this}}}\par\pard
+\cbpat1{{\cf6{     timer. This will cause it to stop counting.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{4}:{4}{8}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_TimerReturn_t}} {\cf16{\b ES_Timer_StopTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{if}}{\cf2{}}{\cf11{(}} {\cf2{Num}} {\cf11{>=}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TMR_TimerArray}}{\cf11{) )}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}} {\cf2{ES_Timer_ERR}}{\cf11{;}}  {\cf2{}}{\cf6{/* tried to set a timer that doesn't exist */}}{\cf2{}\par\pard
+\cbpat1{   TMR_ActiveFlags}} {\cf11{&=}} {\cf2{BitNum{2}ClrMask}}{\cf11{[}}{\cf2{Num}}{\cf11{];}} {\cf2{}}{\cf6{/* set timer as inactive */}}{\cf2{}}}\par\pard
+\cbpat1{   {\cf13{return}} {\cf2{ES_Timer_OK}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_InitTimer}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     unsigned char Num, the number of the timer to start}}}\par\pard
+\cbpat1{{\cf6{     unsigned int NewTime, the number of ticks to be counted}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_ERR if the requested timer does not exist, ES_Timer_OK otherwise.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     sets the NewTime into the chosen timer and sets the timer active to }}}\par\pard
+\cbpat1{{\cf6{     begin counting.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{4}:{5}{1}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}\par\pard
+\cbpat1{ES_TimerReturn_t}} {\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{Num}}{\cf11{,}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{NewTime}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf6{/* tried to set a timer that doesn't exist */}}{\cf2{}}}\par\pard
+\cbpat1{   {\cf13{if}}{\cf2{}}{\cf11{( (}}{\cf2{Num}} {\cf11{>=}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TMR_TimerArray}}{\cf11{)) ||}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf6{/* tried to set a timer without a service */}}{\cf2{}}}\par\pard
+\cbpat1{       {\cf11{(}}{\cf2{Timer{2}PostFunc}}{\cf11{[}}{\cf2{Num}}{\cf11{] ==}} {\cf2{TIMER_UNUSED}}{\cf11{) ||}}}\par\pard
+\cbpat1{{\cf2{}}       {\cf6{/* tried to set a timer without putting any time on it */}}{\cf2{}}}\par\pard
+\cbpat1{       {\cf11{(}}{\cf2{NewTime}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{) )}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}} {\cf2{ES_Timer_ERR}}{\cf11{;}}  }\par\pard
+\cbpat1{{\cf2{   TMR_TimerArray}}{\cf11{[}}{\cf2{Num}}{\cf11{] =}} {\cf2{NewTime}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   TMR_ActiveFlags}} {\cf11{|=}} {\cf2{BitNum{2}SetMask}}{\cf11{[}}{\cf2{Num}}{\cf11{];}} {\cf2{}}{\cf6{/* set timer as active */}}{\cf2{}}}\par\pard
+\cbpat1{   {\cf13{return}} {\cf2{ES_Timer_OK}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_GetTime}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     the current value of the module variable 'time'}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Provides the ability to grab a snapshot time as an alternative to using}}}\par\pard
+\cbpat1{{\cf6{      the library timers. Can be used to determine how long between {2} events.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     this functionality is ancient, though this implementation in the library}}}\par\pard
+\cbpat1{{\cf6{     is new.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{6}/{0}{1}/{0}{4} {0}{8}:{0}{4}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{1}{6}_t}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b _HW_GetTickCount\b0 }}{\cf2{}}{\cf11{());}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ES_Timer_Tick_Resp}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     This is the new Tick response routine to support the timer module.}}}\par\pard
+\cbpat1{{\cf6{     It will increment time, to maintain the functionality of the}}}\par\pard
+\cbpat1{{\cf6{     GetTime() timer and it will check through the active timers,}}}\par\pard
+\cbpat1{{\cf6{     decrementing each active timers count, if the count goes to {0}, it}}}\par\pard
+\cbpat1{{\cf6{     will post an event to the corresponding SM and clear the active flag to}}}\par\pard
+\cbpat1{{\cf6{     prevent further counting.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     Called from _Timer_Int_Resp in ES_Port.c.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{5}:{0}{6}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b ES_Timer_Tick_Resp\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static}} {\cf2{Tflag_t NeedsProcessing}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static uint{8}_t}} {\cf2{NextTimer{2}Process}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{static}} {\cf2{ES_Event NewEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{TMR_ActiveFlags}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}} {\cf2{}}{\cf6{/* if !={0} , then at least {1} timer is active */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{// start by getting a list of all the active timers}}}\par\pard
+\cbpat1{{\cf2{		NeedsProcessing}} {\cf11{=}} {\cf2{TMR_ActiveFlags}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{do}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{// find the MSB that is set}}}\par\pard
+\cbpat1{{\cf2{			NextTimer{2}Process}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_GetMSBitSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{NeedsProcessing}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf6{/* decrement that timer, check if timed out */}}{\cf2{}}}\par\pard
+\cbpat1{			{\cf13{if}}{\cf2{}}{\cf11{(--}}{\cf2{TMR_TimerArray}}{\cf11{[}}{\cf2{NextTimer{2}Process}}{\cf11{] ==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{				NewEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_TIMEOUT}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				NewEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{NextTimer{2}Process}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf6{/* post the timeout event to the right Service */}}{\cf2{}\par\pard
+\cbpat1{				Timer{2}PostFunc}}{\cf11{[}}{\cf2{NextTimer{2}Process}}{\cf11{](}}{\cf2{NewEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf6{/* and stop counting */}}{\cf2{}\par\pard
+\cbpat1{				TMR_ActiveFlags}} {\cf11{&=}} {\cf2{BitNum{2}ClrMask}}{\cf11{[}}{\cf2{NextTimer{2}Process}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{// mark off the active timer that we just processed}}}\par\pard
+\cbpat1{{\cf2{			NeedsProcessing}} {\cf11{&=}} {\cf2{BitNum{2}ClrMask}}{\cf11{[}}{\cf2{NextTimer{2}Process}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}{\cf2{}}{\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{NeedsProcessing}} {\cf11{!=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      }\par\pard
+\cbpat1{	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*------------------------------- Footnotes -------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*------------------------------ End of file ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}}

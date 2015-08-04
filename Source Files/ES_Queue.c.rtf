@@ -1,0 +1,368 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{//#define TEST}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{     ES_Queue.c}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Implements a FIFO circular buffer of EF_Event in a block of memory}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {0}{9}:{3}{4} jec      converted to use the new C{9}{9} types from types.h}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{9}/{1}{1} {1}{8}:{1}{6} jec      started coding}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Include Files -----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Queue.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*----------------------------- Module Defines ----------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{unsigned int}} {\cf2{_PRIMASK_temp}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//unsigned int _FAULTMASK_temp;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// QueueSize is max number of entries in the queue}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// CurrentIndex is the 'read-from' index,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// actually CurrentIndex + sizeof(EF_Queue_t)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// entries are made to CurrentIndex + NumEntries + sizeof(ES_Queue_t)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{typedef}} {\cf2{}}{\cf14{struct}} {\cf2{}}{\cf11{\{}}  {\cf2{}}{\cf14{uint{8}_t}} {\cf2{QueueSize}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                  {\cf14{uint{8}_t}} {\cf2{CurrentIndex}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}                  {\cf14{uint{8}_t}} {\cf2{NumEntries}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}} {\cf2{ES_Queue_t}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{typedef}} {\cf2{ES_Queue_t}} {\cf11{*}} {\cf2{pQueue_t}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Functions ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*---------------------------- Module Variables ---------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*------------------------------ Module Code ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_InitQueue}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   EF_Event * pBlock : pointer to the block of memory to use for the Queue}}}\par\pard
+\cbpat1{{\cf6{   unsigned char BlockSize: size of the block pointed to by pBlock}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   max number of entries in the created queue}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   Initializes a queue structure at the beginning of the block of memory}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   you should pass it a block that is at least sizeof(ES_Queue_t) larger than }}}\par\pard
+\cbpat1{{\cf6{   the number of entries that you want in the queue. Since the size of an }}}\par\pard
+\cbpat1{{\cf6{   ES_Event (at {4} bytes; {2} enum, {2} param) is greater than the }}}\par\pard
+\cbpat1{{\cf6{   sizeof(ES_Queue_t), you only need to declare an array of ES_Event}}}\par\pard
+\cbpat1{{\cf6{   with {1} more element than you need for the actual queue.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{8}/{0}{9}/{1}{1}, {1}{8}:{4}{0}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{8}_t}} {\cf2{}}{\cf16{\b ES_InitQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{BlockSize}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{   pQueue_t pThisQueue}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// initialize the Queue by setting up initial values for elements}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}} {\cf11{= (}}{\cf2{pQueue_t}}{\cf11{)}}{\cf2{pBlock}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// use all but the structure overhead as the Queue}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}}{\cf11{->}}{\cf2{QueueSize}} {\cf11{=}} {\cf2{BlockSize}} {\cf11{-}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}}{\cf11{->}}{\cf2{NumEntries}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_EnQueueFIFO}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   ES_Event * pBlock : pointer to the block of memory in use as the Queue}}}\par\pard
+\cbpat1{{\cf6{   ES_Event Event{2}Add : event to be added to the Queue}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   bool : true if the add was successful, false if not}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   if it will fit, adds Event{2}Add to the Queue}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{  Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{8}/{0}{9}/{1}{1}, {1}{8}:{5}{9}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{ES_Event Event{2}Add}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{   pQueue_t pThisQueue}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}} {\cf11{= (}}{\cf2{pQueue_t}}{\cf11{)}}{\cf2{pBlock}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// index will go from {0} to QueueSize-{1} so use '<' to test if there is space}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{NumEntries}} {\cf11{<}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\{}}  {\cf2{}}{\cf5{// save the new event, use % to create circular buffer in block}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf5{// {1}+ to step past the Queue struct at the beginning of the}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf5{// block}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b EnterCritical\b0 }}{\cf2{}}{\cf11{();}}   {\cf2{}}{\cf5{// save interrupt state, turn ints off}}}\par\pard
+\cbpat1{{\cf2{      pBlock}}{\cf11{[}} {\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{+ ((}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{+}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{NumEntries}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}               {\cf11{%}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}}{\cf11{)] =}} {\cf2{Event{2}Add}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{      pThisQueue}}{\cf11{->}}{\cf2{NumEntries}}{\cf11{++;}}          {\cf2{}}{\cf5{// inc number of entries}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b ExitCritical\b0 }}{\cf2{}}{\cf11{();}}  {\cf2{}}{\cf5{// restore saved interrupt state}}}\par\pard
+\cbpat1{{\cf2{}}      }\par\pard
+\cbpat1{      {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\}}}{\cf2{}}{\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_EnQueueLIFO}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   ES_Event * pBlock : pointer to the block of memory in use as the Queue}}}\par\pard
+\cbpat1{{\cf6{   ES_Event Event{2}Add : event to be added to the Queue}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   bool : true if the add was successful, false if not}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   if it will fit, adds Event{2}Add to the Queue at the extraction point, making}}}\par\pard
+\cbpat1{{\cf6{   it the next event to be removed by a DeQueue operation, that is a }}}\par\pard
+\cbpat1{{\cf6{   Last In First Out operation.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{  Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {1}{1}/{0}{2}/{1}{3}, {1}{4}:{3}{0}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b ES_EnQueueLIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{ES_Event Event{2}Add}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{   pQueue_t pThisQueue}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}} {\cf11{= (}}{\cf2{pQueue_t}}{\cf11{)}}{\cf2{pBlock}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// index will go from {0} to QueueSize-{1} so use '<' to test if there is space}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{NumEntries}} {\cf11{<}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b EnterCritical\b0 }}{\cf2{}}{\cf11{();}}   {\cf2{}}{\cf5{// save interrupt state, turn ints off}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// OK, there is space note that the queue now has {1} more entry}}}\par\pard
+\cbpat1{{\cf2{      pThisQueue}}{\cf11{->}}{\cf2{NumEntries}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Check to see if we need to wrap around as we back up index}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{       pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{=}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}} {\cf11{-}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{        pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{\}}}  }\par\pard
+\cbpat1{{\cf2{      pBlock}}{\cf11{[}} {\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{+}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{] =}} {\cf2{Event{2}Add}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b ExitCritical\b0 }}{\cf2{}}{\cf11{();}}  {\cf2{}}{\cf5{// restore saved interrupt state      }}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}{\cf2{}}{\cf13{else}} {\cf2{}}{\cf5{// in case no room on the queue}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf13{false}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_DeQueue}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   unsigned char * pBlock : pointer to the block of memory in use as the Queue}}}\par\pard
+\cbpat1{{\cf6{   ES_Event * pReturnEvent : used to return the event pulled from the queue}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   The number of entries remaining in the Queue}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   pulls next available entry from Queue, EF_NO_EVENT if Queue was empty and}}}\par\pard
+\cbpat1{{\cf6{   copies it to *pReturnEvent.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{8}/{0}{9}/{1}{1}, {1}{9}:{1}{1}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{8}_t}} {\cf2{}}{\cf16{\b ES_DeQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}}{\cf11{,}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pReturnEvent}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{   pQueue_t pThisQueue}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf14{uint{8}_t}} {\cf2{NumLeft}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{   pThisQueue}} {\cf11{= (}}{\cf2{pQueue_t}}{\cf11{)}}{\cf2{pBlock}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{NumEntries}} {\cf11{>}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b EnterCritical\b0 }}{\cf2{}}{\cf11{();}}   {\cf2{}}{\cf5{// save interrupt state, turn ints off}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{*}}{\cf2{pReturnEvent}} {\cf11{=}} {\cf2{pBlock}}{\cf11{[}} {\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{+}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf5{// inc the index}}}\par\pard
+\cbpat1{{\cf2{      pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf5{// this way we only do the modulo operation when we really need to}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{>=}}  {\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{         pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{= (}}{\cf2{}}{\cf14{uint{8}_t}}{\cf2{}}{\cf11{)(}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{%}} {\cf2{pThisQueue}}{\cf11{->}}{\cf2{QueueSize}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf5{//dec number of elements since we took {1} out}}}\par\pard
+\cbpat1{{\cf2{      NumLeft}} {\cf11{= --}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{NumEntries}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b ExitCritical\b0 }}{\cf2{}}{\cf11{();}}  {\cf2{}}{\cf5{// restore saved interrupt state}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\}}}{\cf2{}}{\cf13{else}} {\cf2{}}{\cf11{\{}} {\cf2{}}{\cf5{// no items left in the queue}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{(*}}{\cf2{pReturnEvent}}{\cf11{).}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_NO_EVENT}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf11{(*}}{\cf2{pReturnEvent}}{\cf11{).}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{      NumLeft}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}} {\cf2{NumLeft}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_IsQueueEmpty}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   unsigned char * pBlock : pointer to the block of memory in use as the Queue}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   bool : true if Queue is empty}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   see above}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{8}/{1}{0}/{1}{1}, {1}{3}:{2}{9}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b ES_IsQueueEmpty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event}} {\cf11{*}} {\cf2{pBlock}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{   pQueue_t pThisQueue}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{   pThisQueue}} {\cf11{= (}}{\cf2{pQueue_t}}{\cf11{)}}{\cf2{pBlock}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}}{\cf2{}}{\cf11{(}}{\cf2{pThisQueue}}{\cf11{->}}{\cf2{NumEntries}} {\cf11{==}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#if {0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   QueueFlushQueue}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   unsigned char * pBlock : pointer to the block of memory in use as the Queue}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   nothing}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   flushes the Queue by reinitializing the indecies}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {0}{8}/{1}{2}/{0}{6}, {1}{9}:{2}{4}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b QueueFlushQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{}}{\cf11{*}} {\cf2{pBlock}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{   pQueue_t pThisQueue}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// doing this with a Queue structure is not strictly necessary}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf5{// but makes it clearer what is going on.}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}} {\cf11{= (}}{\cf2{pQueue_t}}{\cf11{)}}{\cf2{pBlock}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}}{\cf11{->}}{\cf2{CurrentIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{   pThisQueue}}{\cf11{->}}{\cf2{NumEntries}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/***************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ private functions}}}\par\pard
+\cbpat1{{\cf6{ ***************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#ifdef TEST}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_General.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static}} {\cf2{ES_Event TestQueue}}{\cf11{[}}{\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{+}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{volatile}}  {\cf2{}}{\cf14{uint{8}_t}} {\cf2{NumLeft}}{\cf11{;}} {\cf2{}}{\cf5{// for debugging visibility}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b main\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{  ES_Event MyEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{bool}} {\cf2{bReturn}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf16{\b ES_InitQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{}}{\cf16{\b ARRAY_SIZE\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TestQueue}}{\cf11{) );}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{MyEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{+=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// keep that sily optimizer away}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{    {\cf5{// Try stuffing one on using the LIFO rule}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{}}{\cf4{{1}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{1}{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_EnQueueLIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{MyEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{+=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// keep that sily optimizer away}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf5{// at this point, the events in the queue should be {1}{1},{0}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// so pull off the {1}{1}, leaving {1} entry}}}\par\pard
+\cbpat1{{\cf2{  NumLeft}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_DeQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{, &}}{\cf2{MyEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{NumLeft}} {\cf11{!=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{    bReturn}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}  }\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{  MyEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{MyEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{+=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// keep that sily optimizer away}}}\par\pard
+\cbpat1{{\cf2{  }\par\pard
+\cbpat1{  MyEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{}}{\cf4{{4}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{5}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{MyEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{+=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// keep that sily optimizer away}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf5{// queue is now full so this one should fail}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{}}{\cf4{{6}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{7}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_EnQueueFIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{MyEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{+=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// keep that sily optimizer away}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf5{// at this point, the events in the queue should be {0},{2},{4}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// so pull off the {0}, leaving {2} entries}}}\par\pard
+\cbpat1{{\cf2{  NumLeft}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_DeQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{, &}}{\cf2{MyEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{NumLeft}} {\cf11{!=}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{    bReturn}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}  }\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// Try stuffing one on using the LIFO rule}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{=}} {\cf2{}}{\cf4{{9}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_EnQueueLIFO\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{,}} {\cf2{MyEvent}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  bReturn}} {\cf11{+=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// keep that sily optimizer away}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf5{// at this point, the events in the queue should be {8},{2},{4}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf5{// so pull off the {8}, leaving {2} entries}}}\par\pard
+\cbpat1{{\cf2{  NumLeft}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_DeQueue\b0 }}{\cf2{}}{\cf11{(}} {\cf2{TestQueue}}{\cf11{, &}}{\cf2{MyEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  NumLeft}} {\cf11{+=}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{//to keep the compiler from optimizing away the last save}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*------------------------------- Footnotes -------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*------------------------------ End of file ------------------------------*/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}}

@@ -1,0 +1,278 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{   ES_Port.c}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Revision}}}\par\pard
+\cbpat1{{\cf6{   {1}.{0}.{1}}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   This is the sample file to demonstrate adding the hardware specific }}}\par\pard
+\cbpat1{{\cf6{   functions to the Events & Services Framework. This sample is also used}}}\par\pard
+\cbpat1{{\cf6{   as the file for the port to the Freescale MC{9}S{1}{2}C{3}{2} processor.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{1}{3}/{1}{3} {1}{2}:{4}{2} jec     moved the hardware specific aspects of the timer here}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{6}/{1}{3} {1}{3}:{1}{7} jec     Began moving the stuff from the V{2} framework files}}}\par\pard
+\cbpat1{{\cf6{ {0}{3}/{0}{5}/{1}{4} {1}{3}:{2}{0}	joa		Began port for TM{4}C{1}{2}{3}G}}}\par\pard
+\cbpat1{{\cf6{ {0}{3}/{1}{3}/{1}{4} {1}{0}:{3}{0}	joa		Updated files to use with Cortex M{4} processor core.}}}\par\pard
+\cbpat1{{\cf6{ 	 	 	 	 	 	Specifically, this was tested on a TI TM{4}C{1}{2}{3}G mcu.}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdbool.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/interrupt.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/uart.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/pin_map.h"}}{\cf8{}}	{\cf5{// Define PART_TM{4}C{1}{2}{3}GH{6}PM in project}}}\par\pard
+\cbpat1{{\cf8{}}{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/systick.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"utils/uartstdio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Timers.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define UART_PORT 		{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define UART_BAUD		{1}{1}{5}{2}{0}{0}UL}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SRC_CLK_FREQ	{1}{6}{0}{0}{0}{0}{0}{0}UL}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define CLK_FREQ		{4}{0}{0}{0}{0}{0}{0}{0}UL}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// TickCount is used to track the number of timer ints that have occurred}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// since the last check. It should really never be more than {1}, but just to}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// be sure, we increment it in the interrupt response rather than simply }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// setting a flag. Using this variable and checking approach we remove the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// need to post events from the interrupt response routine. This is necessary}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// for compilers like HTC for the midrange PICs which do not produce re-entrant}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// code so cannot post directly to the queues from within the interrupt resp.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{TickCount}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// Global tick count to monitor number of SysTick Interrupts}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// make uint{1}{6}_t to maintain backwards compatibility and not overly burden}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// {8} and {1}{6} bit processors}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}} {\cf2{}}{\cf15{volatile}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{SysTickCounter}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     _HW_Timer_Init}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     unsigned char Rate set to one of the TMR_RATE_XX values to set the}}}\par\pard
+\cbpat1{{\cf6{     Tick rate}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Initializes the timer module by setting up the SysTick Interrupt with the requested}}}\par\pard
+\cbpat1{{\cf6{    rate}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     modify as required to port to other timer hardware}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{2}/{2}{4}/{9}{7} {1}{4}:{2}{3}}}}\par\pard
+\cbpat1{{\cf6{     John Alabi, {0}{3}/{0}{5}/{1}{4} {1}{3}:{2}{2}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b _HW_Timer_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{TimerRate_t Rate}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b SysTickPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{Rate}}{\cf11{);}}			{\cf2{}}{\cf6{/* Set the SysTick Interrupt Rate */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf16{\b SysTickIntEnable\b0 }}{\cf2{}}{\cf11{();}}				{\cf2{}}{\cf6{/* Enable the SysTick Interrupt */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf16{\b SysTickEnable\b0 }}{\cf2{}}{\cf11{();}}				{\cf2{}}{\cf6{/* Enable SysTick */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf16{\b IntMasterEnable\b0 }}{\cf2{}}{\cf11{();}}				{\cf2{}}{\cf6{/* Make sure interrupts are enabled */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     SysTickIntHandler}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     none}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     None.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     interrupt response routine for the tick interrupt that will allow the}}}\par\pard
+\cbpat1{{\cf6{     framework timers to run.}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     As currently ({8}/{1}{3}/{1}{3}) implemented this does not actually post events}}}\par\pard
+\cbpat1{{\cf6{     but simply sets a flag to indicate that the interrupt has occurred.}}}\par\pard
+\cbpat1{{\cf6{     the framework response is handled below in _HW_Process_Pending_Ints}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{    John Alabi, {0}{3}/{0}{5}/{1}{4} {1}{3}:{5}{0}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b SysTickIntHandler\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf6{/* Interrupt automatically cleared by hardware */}}{\cf2{}}}\par\pard
+\cbpat1{  {\cf11{++}}{\cf2{TickCount}}{\cf11{;}}          {\cf2{}}{\cf6{/* flag that it occurred and needs a response */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf11{++}}{\cf2{SysTickCounter}}{\cf11{;}}     {\cf2{}}{\cf5{// keep the free running time going}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#ifdef LED_DEBUG}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b BlinkLED\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{    _HW_GetTickCount()}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{    none}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{    uint{1}{6}_t   count of number of system ticks that have occurred.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{    wrapper for access to SysTickCounter, needed to move increment of tick}}}\par\pard
+\cbpat1{{\cf6{    counter to this module to keep the timer ticking during blocking code}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     }}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{    Ed Carryer, {1}{0}/{2}{7}/{1}{4} {1}{3}:{5}{5}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{1}{6}_t}} {\cf2{}}{\cf16{\b _HW_GetTickCount\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return}} {\cf2{}}{\cf11{(}}{\cf2{SysTickCounter}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     _HW_Process_Pending_Ints}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     none}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     always true.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     processes any pending interrupts (actually the hardware interrupt already}}}\par\pard
+\cbpat1{{\cf6{     occurred and simply set a flag to tell this routine to execute the non-}}}\par\pard
+\cbpat1{{\cf6{     hardware response) }}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     While this routine technically does not need a return value, we always}}}\par\pard
+\cbpat1{{\cf6{     return true so that it can be used in the conditional while() loop in}}}\par\pard
+\cbpat1{{\cf6{     ES_Run. This way the test for pending interrupts get processed after every}}}\par\pard
+\cbpat1{{\cf6{     run function is called and even when there are no queues with events.}}}\par\pard
+\cbpat1{{\cf6{     This routine could be expanded to process any other interrupt sources}}}\par\pard
+\cbpat1{{\cf6{     that you would like to use to post events to the framework services.}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     J. Edward Carryer, {0}{8}/{1}{3}/{1}{3} {1}{3}:{2}{7}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b _HW_Process_Pending_Ints\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{while}} {\cf2{}}{\cf11{(}}{\cf2{TickCount}} {\cf11{>}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf6{/* call the framework tick response to actually run the timers */}}{\cf2{}}}\par\pard
+\cbpat1{      {\cf16{\b ES_Timer_Tick_Resp\b0 }}{\cf2{}}{\cf11{();}}  }\par\pard
+\cbpat1{{\cf2{      TickCount}}{\cf11{--;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf13{return true}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{// always return true to allow loop test in ES_Run to proceed}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{     ConsoleInit}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{     none}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{     none.}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{	TBD}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{	TBD}}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{     John Alabi, {0}{3}/{0}{5}/{1}{4} {1}{5}:{0}{7}}}}\par\pard
+\cbpat1{{\cf6{ ****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b ConsoleInit\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Enable designated port that will be used for the UART}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b SysCtlPeripheralEnable\b0 }}{\cf2{}}{\cf11{(}} {\cf2{SYSCTL_PERIPH_GPIOA}} {\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf5{// Enable the designated UART}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b SysCtlPeripheralEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_PERIPH_UART{0}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf5{// Configure pins for UART including setup for alternate (UART) functionality}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b GPIOPinConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PA{0}_U{0}RX}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b GPIOPinConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PA{1}_U{0}TX}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b GPIOPinTypeUART\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PORTA_BASE}}{\cf11{,}} {\cf2{GPIO_PIN_{0}}} {\cf11{|}} {\cf2{GPIO_PIN_{1}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf5{// Select the clock source}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b UARTClockSourceSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{UART{0}_BASE}}{\cf11{,}} {\cf2{UART_CLOCK_PIOSC}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf5{// Initialize the UART for console I/O}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b UARTStdioConfig\b0 }}{\cf2{}}{\cf11{(}}{\cf2{UART_PORT}}{\cf11{,}} {\cf2{UART_BAUD}}{\cf11{,}} {\cf2{SRC_CLK_FREQ}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#if defined(ccs)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf16{\b CPUgetPRIMASK_cpsid\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b __asm\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"    mrs     r{0}, primask	;	Store PRIMASK in r{0}}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{          {\cf3{"    cpsid   i			;	Disable interrupts}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{          {\cf3{"    bx      lr			;	Return from function}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{    	  {\cf3{"							;	Return PRIMASK in r{0}}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf6{/* Used to satisfy compiler. Actual return in r{0} */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf13{return}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b CPUsetPRIMASK\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{newPRIMASK}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Set the PRIMASK register to passed in parameter}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b __asm\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"    msr    primask, r{0}	;	Store newPRIMASK in PRIMASK}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{		  {\cf3{"    bx     lr			;	Return from function}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf16{\b CPUgetFAULTMASK_cpsid\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b __asm\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"    mrs     r{0}, faultmask;	Store FAULTMASK in r{0}}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{          {\cf3{"    cpsid   f			;	Disable fault handlers & interrupts}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{          {\cf3{"    bx      lr			;	Return from function}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}}\par\pard
+\cbpat1{    	  {\cf3{"							;	Return FAULTMASK in r{0}}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf6{/* Used to satisfy compiler. Actual return in r{0} */}}{\cf2{}}}\par\pard
+\cbpat1{	{\cf13{return}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b CPUsetFAULTMASK\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{newFAULTMASK}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{// Set the FAULTMASK register to the passed in parameter}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b __asm\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"    msr    faultmask, r{0}	;	Store newFAULTMASK in FAULTMASK}}{\cf7{\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//	  "    bx     lr			;	Return from function\\n");}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#if defined(rvmdk) || defined(__ARMCC_VERSION)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf15{inline}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf16{\b CPUgetPRIMASK_cpsid\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{3}{2}_t}} {\cf2{r{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  __asm}}}\par\pard
+\cbpat1{  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    mrs     r{0}}}{\cf11{,}} {\cf2{PRIMASK}}{\cf11{;}}	  {\cf2{}}{\cf5{// Store PRIMASK in r{0}}}}\par\pard
+\cbpat1{{\cf2{    cpsid   i}}{\cf11{;}}				      {\cf2{}}{\cf5{// Disable interrupts}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{r{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{inline}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b CPUsetPRIMASK\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{newPRIMASK}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{  __asm}}}\par\pard
+\cbpat1{  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    msr     PRIMASK}}{\cf11{,}} {\cf2{newPRIMASK}}		  {\cf5{// Store newPRIMASK in PRIMASK}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{inline}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf16{\b CPUgetFAULTMASK_cpsid\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{3}{2}_t}} {\cf2{r{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  __asm}}}\par\pard
+\cbpat1{  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    mrs     r{0}}}{\cf11{,}} {\cf2{FAULTMASK}}{\cf11{;}}	{\cf2{}}{\cf5{// Store FAULTMASK in r{0}}}}\par\pard
+\cbpat1{{\cf2{    cpsid   i}}{\cf11{;}}				      {\cf2{}}{\cf5{// Disable interrupts}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{r{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf15{inline}} {\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b CPUsetFAULTMASK\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{newFAULTMASK}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{  __asm}}}\par\pard
+\cbpat1{  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{    msr     FAULTMASK}}{\cf11{,}} {\cf2{newFAULTMASK}}	  {\cf5{// Store newFAULTMASK in FAULTMASK}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#endif}}{\cf2{}}}\par\pard
+\cbpat1{}}

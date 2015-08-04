@@ -1,0 +1,462 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//  LED.c}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//  Doomsday}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//  Created by Andrew M Berberick on {1}{1}/{9}/{1}{4}.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//  Copyright (c) {2}{0}{1}{4} Andrew M Berberick. All rights reserved.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdbool.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdio.h>}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Port.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Timers.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"termio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Configure.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"ES_Framework.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"LED.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#define clrScrn() printf(}}{\cf9{"}}{\cf7{\\x{1}b}}{\cf9{[{2}J"}}{\cf8{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ALL_BITS ({0}xff << {2})}} {\cf5{// differential address to access all bits in register at once}}}\par\pard
+\cbpat1{{\cf8{}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define QUARTER_SEC  (ONE_SEC/{4})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define FOUR_SEC  (ONE_SEC*{4})}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define EIGHTH_SEC  (ONE_SEC/{8})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define ONE_SEC {9}{7}{6}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define HALF_SEC (ONE_SEC/{2})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define TWO_SEC (ONE_SEC*{2})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define THREE_SEC (ONE_SEC*{3})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define FIVE_SEC (ONE_SEC*{5})}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//#define TEST}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SCORE_SERIAL_PIN BIT{4}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SCORE_SHIFT_PIN BIT{5}HI }}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SCORE_LATCH_PIN BIT{6}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SCORE_BASE GPIO_PORTC_BASE}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SCORE_PORT SYSCTL_RCGCGPIO_R{2}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define INSTR_BASE GPIO_PORTA_BASE}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define INSTR_SERIAL_PIN BIT{2}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define INSTR_SHIFT_PIN BIT{3}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define INSTR_LATCH_PIN BIT{4}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define INSTR_PORT SYSCTL_RCGCGPIO_R{0}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define EMO_BASE GPIO_PORTA_BASE}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define EMO_SERIAL_PIN BIT{5}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define EMO_SHIFT_PIN BIT{6}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define EMO_LATCH_PIN BIT{7}HI}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define EMO_PORT SYSCTL_RCGCGPIO_R{0}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define NUM_INSTRUCTIONS {6}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define SCORE_ARRAY_SIZE {8}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define EMO_ARRAY_SIZE {1}{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define INSTRUCTION_ARRAY_SIZE {1}{2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define NUM_LEDS {1}{6}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define DOOM_LEDS {0}xff{0}{0}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define JOY_LEDS {0}x{0}{0}ff}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#define INST_ARRAY_SIZE {8}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*******************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static uint{1}{6}_t}} {\cf2{scoreArray}}{\cf11{[}}{\cf2{SCORE_ARRAY_SIZE}}{\cf11{] = \{}}{\cf2{}}{\cf4{{0}x{0}{1}{0}{1}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{0}{3}{0}{3}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{0}{7}{0}{7}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{0}f{0}f}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{1}f{1}f}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{3}f{3}f}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{7}f{7}f}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}xffff}}{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//First half of array is Player {1}, second half is player {2}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static uint{1}{6}_t instructionArray[INSTRUCTION_ARRAY_SIZE] = \{{0}x{0}{0}{0}{1},{0}x{0}{0}{0}{2},{0}x{0}{0}{0}{4}, {0}x{0}{0}{0}{8}, {0}x{0}{0}{1}{0}, {0}x{0}{0}{2}{0}\};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{1}{6}_t}} {\cf2{emoArray}}{\cf11{[}}{\cf2{EMO_ARRAY_SIZE}}{\cf11{] = \{}}{\cf2{}}{\cf4{{0}x{0}{0}{5}{5}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{0}{0}AA}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}x{0}{0}ff}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{0}DE}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{0}ef}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{0}fe}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{0}fd}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{0}{7}e}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}x{0}{0}ea}}{\cf2{}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}} {\cf2{MyPriority}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static int}} {\cf2{countIndex}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static}}  {\cf2{LED_Game_State currentState}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}} {\cf2{InstrOne}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}} {\cf2{InstrTwo}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}} {\cf2{instArray}}{\cf11{[}}{\cf2{INST_ARRAY_SIZE}}{\cf11{] = \{}}{\cf2{BIT{0}HI}}{\cf11{,}} {\cf2{BIT{1}HI}}{\cf11{,}} {\cf2{BIT{2}HI}}{\cf11{,}} {\cf2{BIT{3}HI}}{\cf11{,}} {\cf2{BIT{4}HI}}{\cf11{,}} {\cf2{BIT{5}HI}}{\cf11{,}} {\cf2{BIT{6}HI}}{\cf11{,}} {\cf2{BIT{7}HI}}{\cf11{\};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static unsigned int}} {\cf2{blinkTime}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static uint{1}{6}_t playerOneByte = {0}x{0}{0}{0}{0}; }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static uint{1}{6}_t playerTwoByte = {0}x{0}{0}{0}{0}; }}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static unsigned int doomCalls = {0};}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****** Private Function Prototypes ******************************/}}{\cf2{}}}\par\pard
+\cbpat1{ }\par\pard
+\cbpat1{ {\cf6{/* DoomPattern:}}}\par\pard
+\cbpat1{{\cf6{ Use this function to put the LEDs in the DoomPattern}}}\par\pard
+\cbpat1{{\cf6{ */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_DoomPattern\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b LED_JoyPattern\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* IncrementScore:}}}\par\pard
+\cbpat1{{\cf6{ @Param int nextScore}}}\par\pard
+\cbpat1{{\cf6{ }}}\par\pard
+\cbpat1{{\cf6{ Use this function to light up the LED corresponding to the nextScore variable}}}\par\pard
+\cbpat1{{\cf6{ */}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_IncrementScore\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{serialPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{shiftPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{numLeds}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b LED_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b LED_GiveInstruction\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{instruction}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{playerOne}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{playerTwo}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b delay\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{count}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{currentBits}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{serialPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{shiftPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{numLeds}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b pulseShift\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}}	{\cf2{}}{\cf16{\b pulseLatch\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//static unsigned int chooseBlinkTime(void);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static int}} {\cf2{on}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static int}} {\cf2{emoIndex}} {\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/************************************************ Public Functions ****************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b InitLEDService\b0 }} {\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{Priority}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{  ES_Event ThisEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  MyPriority}} {\cf11{=}} {\cf2{Priority}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b LED_Init\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}}{\cf11{,}} {\cf2{SCORE_SERIAL_PIN}}{\cf11{,}} {\cf2{SCORE_SHIFT_PIN}}{\cf11{,}}{\cf2{SCORE_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{  ThisEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_INIT}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"LED Init}} {\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{	{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf16{\b ES_PostToService\b0 }}{\cf2{}}{\cf11{(}} {\cf2{MyPriority}}{\cf11{,}} {\cf2{ThisEvent}}{\cf11{) ==}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return true}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}{\cf2{}}{\cf13{else}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf13{return false}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{bool}} {\cf2{}}{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event ThisEvent}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{return}} {\cf2{}}{\cf16{\b ES_PostToService\b0 }}{\cf2{}}{\cf11{(}} {\cf2{MyPriority}}{\cf11{,}} {\cf2{ThisEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{ES_Event}} {\cf16{\b RunLEDService\b0 }}{\cf2{}}{\cf11{(}} {\cf2{ES_Event ThisEvent}} {\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{	ES_Event newEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  ES_Event ReturnEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{  ReturnEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{ES_NO_EVENT}}{\cf11{;}} {\cf2{}}{\cf5{// assume no errors}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{switch}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventType}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{case}} {\cf2{ES_INIT}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{			on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			countIndex}} {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			currentState}} {\cf11{=}} {\cf2{waiting}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Doom}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			blinkTime}} {\cf11{=}} {\cf2{HALF_SEC}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("LED {2} Init \\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}}{\cf11{,}} {\cf2{SCORE_SERIAL_PIN}}{\cf11{,}} {\cf2{SCORE_SHIFT_PIN}}{\cf11{,}}{\cf2{SCORE_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{GameStarted}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("GameStarted \\n\\r");}}}\par\pard
+\cbpat1{{\cf2{			countIndex}} {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{currentState}}{\cf11{==}}{\cf2{waiting}}{\cf11{)}}{\cf2{currentState}} {\cf11{=}} {\cf2{playing}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//LED_ResetBits(SCORE_BASE, SCORE_SERIAL_PIN, SCORE_SHIFT_PIN,SCORE_LATCH_PIN,NUM_LEDS);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//LED_ResetBits(INSTR_BASE, INSTR_SERIAL_PIN, INSTR_SHIFT_PIN, INSTR_LATCH_PIN,NUM_LEDS);}}}\par\pard
+\cbpat1{{\cf2{			}\par\pard
+\cbpat1{			newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Doom}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			blinkTime}} {\cf11{=}} {\cf2{FIVE_SEC}}{\cf11{/}}{\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{IncrementScore}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{currentState}} {\cf11{==}} {\cf2{playing}} {\cf11{&&}} {\cf2{countIndex}}{\cf11{<=}}{\cf2{}}{\cf4{{7}}}{\cf2{}}{\cf11{)}} {\cf2{}}{\cf16{\b LED_IncrementScore\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("IncrementScore\\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{LED_Doom}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{currentState}} {\cf11{==}} {\cf2{waiting}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{LED_BLINK_TIMER}}{\cf11{,}} {\cf2{blinkTime}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b LED_DoomPattern\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{				on}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b LED_DoomPattern\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}				}\par\pard
+\cbpat1{			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{LED_Joy}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b ES_Timer_InitTimer\b0 }}{\cf2{}}{\cf11{(}}{\cf2{LED_BLINK_TIMER}}{\cf11{,}} {\cf2{blinkTime}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_JoyPattern\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{PlayerOneInstruction}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{			InstrOne}} {\cf11{=}} {\cf2{instArray}}{\cf11{[}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}}{\cf11{+}}{\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_GiveInstruction\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}}{\cf11{,}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("PlayerOneInstr\\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{PlayerTwoInstruction}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{			InstrTwo}} {\cf11{=}} {\cf2{instArray}}{\cf11{[}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}}{\cf11{+}}{\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_GiveInstruction\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}}{\cf11{,}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("PlayerTwoInstr\\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{GameWon}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{			currentState}} {\cf11{=}} {\cf2{winning}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Joy}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			blinkTime}} {\cf11{=}} {\cf2{HALF_SEC}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}} {\cf2{}}{\cf5{//Double check}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"GameWon LED}} {\cf7{\\n\\r}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf13{case}} {\cf2{ES_TIMEOUT}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{LED_BLINK_TIMER}} {\cf11{&&}} {\cf2{currentState}} {\cf11{==}} {\cf2{waiting}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{				newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Doom}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				blinkTime}} {\cf11{=}} {\cf2{HALF_SEC}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}{\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{LED_BLINK_TIMER}} {\cf11{&&}} {\cf2{currentState}} {\cf11{==}} {\cf2{winning}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{				newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Joy}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				blinkTime}} {\cf11{=}} {\cf2{HALF_SEC}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{			else if(ThisEvent.EventParam == LED_BLINK_TIMER && currentState == playing)\{}}}\par\pard
+\cbpat1{{\cf6{				newEvent.EventType = LED_Doom;}}}\par\pard
+\cbpat1{{\cf6{				doomCalls++;}}}\par\pard
+\cbpat1{{\cf6{				blinkTime = chooseBlinkTime();}}}\par\pard
+\cbpat1{{\cf6{				PostLEDService(newEvent);}}}\par\pard
+\cbpat1{{\cf6{			*/}}{\cf2{}}}\par\pard
+\cbpat1{			{\cf11{\}}}{\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{GAME_TIMER}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{				currentState}} {\cf11{=}} {\cf2{waiting}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				countIndex}} {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}}{\cf11{,}} {\cf2{SCORE_SERIAL_PIN}}{\cf11{,}} {\cf2{SCORE_SHIFT_PIN}}{\cf11{,}}{\cf2{SCORE_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{				newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Doom}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				blinkTime}} {\cf11{=}} {\cf2{HALF_SEC}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}{\cf2{}}{\cf13{else if}}{\cf2{}}{\cf11{(}}{\cf2{ThisEvent}}{\cf11{.}}{\cf2{EventParam}} {\cf11{==}} {\cf2{WIN_TIMER}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{				on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				countIndex}} {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				currentState}} {\cf11{=}} {\cf2{waiting}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}}{\cf11{,}} {\cf2{SCORE_SERIAL_PIN}}{\cf11{,}} {\cf2{SCORE_SHIFT_PIN}}{\cf11{,}}{\cf2{SCORE_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{				newEvent}}{\cf11{.}}{\cf2{EventType}} {\cf11{=}} {\cf2{LED_Doom}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{				blinkTime}} {\cf11{=}} {\cf2{HALF_SEC}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"got here}}{\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b PostLEDService\b0 }}{\cf2{}}{\cf11{(}}{\cf2{newEvent}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{  {\cf13{return}} {\cf2{ReturnEvent}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/******************************************* Private Functions     *******************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{static unsigned int chooseBlinkTime(void)\{}}}\par\pard
+\cbpat1{{\cf6{	unsigned int time = FIVE_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{//	if(doomCalls<={1}{0})time = FIVE_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{	else if(doomCalls>{1}{0} && doomCalls<{1}{8})time = FOUR_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{	else if(doomCalls>{1}{8} && doomCalls<={2}{4})time = THREE_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{	else if(doomCalls>{2}{4} && doomCalls<={2}{9})time = TWO_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{	else if(doomCalls>{2}{9} && doomCalls<={3}{5})time = ONE_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{	else if(doomCalls>{3}{5} && doomCalls<={4}{3})time = HALF_SEC/{2};}}}\par\pard
+\cbpat1{{\cf6{	else time = QUARTER_SEC;}}}\par\pard
+\cbpat1{{\cf6{	return time;}}}\par\pard
+\cbpat1{{\cf6{	}}}\par\pard
+\cbpat1{{\cf6{\}}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf6{/* Init score LEDS */}}{\cf2{}\par\pard
+\cbpat1{	countIndex}} {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{) |=}} {\cf2{SCORE_PORT}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf14{int}} {\cf2{dummy}} {\cf11{=}} {\cf2{}}{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}} {\cf11{+}} {\cf2{GPIO_O_DEN}}{\cf11{) |= (}}{\cf2{SCORE_SERIAL_PIN}}{\cf11{|}}{\cf2{SCORE_SHIFT_PIN}}{\cf11{|}}{\cf2{SCORE_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}} {\cf11{+}} {\cf2{GPIO_O_DIR}}{\cf11{) |= (}}{\cf2{SCORE_SERIAL_PIN}}{\cf11{|}}{\cf2{SCORE_SHIFT_PIN}}{\cf11{|}}{\cf2{SCORE_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SCORE_BASE}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~(}}{\cf2{SCORE_SHIFT_PIN}} {\cf11{|}} {\cf2{SCORE_SERIAL_PIN}} {\cf11{|}} {\cf2{SCORE_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	}\par\pard
+\cbpat1{	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{) |=}} {\cf2{INSTR_PORT}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf14{int}} {\cf2{dummy{1}}} {\cf11{=}} {\cf2{}}{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}} {\cf11{+}} {\cf2{GPIO_O_DEN}}{\cf11{) |= (}}{\cf2{INSTR_SERIAL_PIN}}{\cf11{|}}{\cf2{INSTR_SHIFT_PIN}}{\cf11{|}}{\cf2{INSTR_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}} {\cf11{+}} {\cf2{GPIO_O_DIR}}{\cf11{) |= (}}{\cf2{INSTR_SERIAL_PIN}}{\cf11{|}}{\cf2{INSTR_SHIFT_PIN}}{\cf11{|}}{\cf2{INSTR_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~(}}{\cf2{INSTR_SHIFT_PIN}} {\cf11{|}} {\cf2{INSTR_SERIAL_PIN}} {\cf11{|}} {\cf2{INSTR_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	}\par\pard
+\cbpat1{	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{) |=}} {\cf2{EMO_PORT}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf14{int}} {\cf2{dummy{2}}} {\cf11{=}} {\cf2{}}{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_RCGCGPIO}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EMO_BASE}} {\cf11{+}} {\cf2{GPIO_O_DEN}}{\cf11{) |= (}}{\cf2{EMO_SERIAL_PIN}}{\cf11{|}}{\cf2{EMO_SHIFT_PIN}}{\cf11{|}}{\cf2{EMO_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EMO_BASE}} {\cf11{+}} {\cf2{GPIO_O_DIR}}{\cf11{) |= (}}{\cf2{EMO_SERIAL_PIN}}{\cf11{|}}{\cf2{EMO_SHIFT_PIN}}{\cf11{|}}{\cf2{EMO_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{EMO_BASE}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~(}}{\cf2{EMO_SHIFT_PIN}} {\cf11{|}} {\cf2{EMO_SERIAL_PIN}} {\cf11{|}} {\cf2{EMO_LATCH_PIN}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_GiveInstruction\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{index}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{playerOne}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{playerTwo}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{1}{6}_t}} {\cf2{currentBits}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{		currentBits}} {\cf11{= (}}{\cf2{InstrOne}} {\cf11{<<}} {\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{) |}} {\cf2{InstrTwo}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//for (int i = {1}{5}; i >= {0}; --i)\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//	printf((currentBits & ({1} << i)) ? "{1}" : "{0}" );}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//\}}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//printf("\\r\\n");}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//printf("Player One = %d, Player Two = %d, Index = %d\\n\\r", playerOne, playerTwo, index);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//if(playerOne)playerOneByte = (instructionArray[index-{1}]<<{1}{0});}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//if(playerTwo)playerTwoByte = instructionArray[index-{1}]<<{4};}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//currentBits |= (playerOneByte|playerTwoByte);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//printf("Current Byte = %{0}{4}x\\n\\r", currentBits);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{currentBits}}{\cf11{,}} {\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//printf("in instructino fxn");}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//The base for the shiftPin, serialPin, and latchPin must alll be the same (eg C)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static void}} {\cf2{}}{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{currentBits}}{\cf11{,}} {\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{serialPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{shiftPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{,}}{\cf2{}}{\cf14{int}} {\cf2{numLeds}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//Clear everything out}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf6{/***************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{		{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~}}{\cf2{serialPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~}}{\cf2{shiftPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~}}{\cf2{latchPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/********************************************************************/}}{\cf2{}}	}\par\pard
+\cbpat1{	{\cf5{//printf("{0}x%{0}{8}x = bits\\n\\r", currentBits);}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{numLeds}}{\cf11{;}}{\cf2{i}}{\cf11{++)\{}}	}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("{0}x%{0}{8}x = bits\\n\\r", currentBits);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{currentBits}} {\cf11{&}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{1}}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) |=}} {\cf2{serialPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf5{//printf("High \\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~}}{\cf2{serialPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}				{\cf5{//printf("low \\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{			{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b pulseShift\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}}{\cf11{,}}{\cf2{shiftPin}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{			currentBits}}{\cf11{>>=}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf5{//printf("{0}x%{0}{8}x = bits\\n\\r", currentBits);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b pulseLatch\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}}{\cf11{,}}{\cf2{latchPin}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}	}\par\pard
+\cbpat1{	}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_DoomPattern\b0 }}{\cf2{}}{\cf11{()\{}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf14{uint{1}{6}_t}} {\cf2{currentBits}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{on}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{			currentBits}} {\cf11{= (}}{\cf2{emoArray}}{\cf11{[}}{\cf2{emoIndex}}{\cf11{]<<}}{\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{			emoIndex}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{emoIndex}}{\cf11{>=}}{\cf2{}}{\cf4{{1}{0}}}{\cf2{}}{\cf11{)}}{\cf2{emoIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{else}} {\cf2{currentBits}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{currentBits}}{\cf11{,}} {\cf2{EMO_BASE}}{\cf11{,}} {\cf2{EMO_SERIAL_PIN}}{\cf11{,}} {\cf2{EMO_SHIFT_PIN}}{\cf11{,}} {\cf2{EMO_LATCH_PIN}}{\cf11{,}} {\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{on}}{\cf11{)}}{\cf2{on}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{else}} {\cf2{on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	 }\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_JoyPattern\b0 }}{\cf2{}}{\cf11{()\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf14{uint{1}{6}_t}} {\cf2{currentBits}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{on}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{			currentBits}} {\cf11{= (}}{\cf2{emoArray}}{\cf11{[}}{\cf2{emoIndex}}{\cf11{]);}}}\par\pard
+\cbpat1{{\cf2{			emoIndex}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{emoIndex}}{\cf11{>=}}{\cf2{}}{\cf4{{9}}}{\cf2{}}{\cf11{)}}{\cf2{emoIndex}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{else}} {\cf2{currentBits}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{currentBits}}{\cf11{,}} {\cf2{EMO_BASE}}{\cf11{,}} {\cf2{EMO_SERIAL_PIN}}{\cf11{,}} {\cf2{EMO_SHIFT_PIN}}{\cf11{,}} {\cf2{EMO_LATCH_PIN}}{\cf11{,}} {\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}}{\cf2{}}{\cf11{(}}{\cf2{on}}{\cf11{)}}{\cf2{on}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{else}} {\cf2{on}} {\cf11{=}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	 }\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b pulseLatch\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) |=}} {\cf2{latchPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf5{//delay({1}{0});}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~}}{\cf2{latchPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b pulseShift\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{shiftPin}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) |=}} {\cf2{shiftPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//delay({1}{0});}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b HWREG\b0 }}{\cf2{}}{\cf11{(}}{\cf2{base}} {\cf11{+ (}}{\cf2{GPIO_O_DATA}} {\cf11{+}} {\cf2{ALL_BITS}}{\cf11{)) &= ~}}{\cf2{shiftPin}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_IncrementScore\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{     Write bit to serial, pulse srclk, write pulse, pulse rclck}}}\par\pard
+\cbpat1{{\cf6{     */}}{\cf2{}\par\pard
+\cbpat1{	countIndex}}{\cf11{++;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{uint{1}{6}_t}} {\cf2{currentBits}} {\cf11{=}} {\cf2{scoreArray}}{\cf11{[}}{\cf2{countIndex}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{currentBits}}{\cf11{,}} {\cf2{SCORE_BASE}}{\cf11{,}} {\cf2{SCORE_SERIAL_PIN}}{\cf11{,}} {\cf2{SCORE_SHIFT_PIN}}{\cf11{,}} {\cf2{SCORE_LATCH_PIN}}{\cf11{,}} {\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}} }\par\pard
+\cbpat1{}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{base}}{\cf11{,}}{\cf2{}}{\cf14{uint{8}_t}} {\cf2{serialPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{shiftPin}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{latchPin}}{\cf11{,}} {\cf2{}}{\cf14{int}} {\cf2{numLeds}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}   	{\cf14{uint{1}{6}_t}} {\cf2{currentBits}} {\cf11{=}} {\cf2{}}{\cf4{{0}x{0}{0}{0}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{currentBits}}{\cf11{,}} {\cf2{base}}{\cf11{,}} {\cf2{serialPin}}{\cf11{,}} {\cf2{shiftPin}}{\cf11{,}} {\cf2{latchPin}}{\cf11{,}} {\cf2{numLeds}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*********************************** Local Functions **************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static void}} {\cf2{}}{\cf16{\b delay\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{count}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{int}} {\cf2{init}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf14{int}} {\cf2{val}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf13{while}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{) \{}}}\par\pard
+\cbpat1{{\cf2{		val}} {\cf11{=}} {\cf2{}}{\cf16{\b ES_Timer_GetTime\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{val}} {\cf11{==}} {\cf2{init}} {\cf11{+}} {\cf2{count}}{\cf11{)}}{\cf2{}}{\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}	{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/***************************************** TEST ******************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf8{#ifdef TEST}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{int}} {\cf2{}}{\cf16{\b main\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b TERMIO_Init\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}	  {\cf16{\b _HW_Timer_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{ES_Timer_RATE_{1}mS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b LED_Init\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf16{\b LED_ResetBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf14{uint{1}{6}_t}} {\cf2{currBits}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{		countIndex}} {\cf11{= -}}{\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{		{\cf5{//printf("RESET\\n\\r");}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf13{for}} {\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{6}}}{\cf2{}}{\cf11{;}} {\cf2{i}}{\cf11{++) \{}}}\par\pard
+\cbpat1{{\cf2{			InstrOne}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{			InstrTwo}} {\cf11{=}} {\cf2{instArray}}{\cf11{[}}{\cf2{i}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{			currBits}} {\cf11{=}} {\cf2{InstrOne}} {\cf11{<<}}{\cf2{}}{\cf4{{8}}}  {\cf2{}}{\cf11{|}} {\cf2{InstrTwo}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b writeBits\b0 }}{\cf2{}}{\cf11{(}}{\cf2{currBits}}{\cf11{,}} {\cf2{INSTR_BASE}}{\cf11{,}} {\cf2{INSTR_SERIAL_PIN}}{\cf11{,}} {\cf2{INSTR_SHIFT_PIN}}{\cf11{,}} {\cf2{INSTR_LATCH_PIN}}{\cf11{,}}{\cf2{NUM_LEDS}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b printf\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf3{"%d}} {\cf7{\\r\\n}}{\cf3{"}}{\cf2{}}{\cf11{,}} {\cf2{i}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b delay\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{1}{0}{0}{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{		{\cf5{//writeBits({0}xffff, SCORE_BASE, SCORE_SERIAL_PIN, SCORE_SHIFT_PIN, SCORE_LATCH_PIN, NUM_LEDS);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//delay({8});}}}\par\pard
+\cbpat1{{\cf2{}}	 {\cf5{// writeBits({0}xffff, SCORE_BASE, SCORE_SERIAL_PIN, SCORE_SHIFT_PIN, SCORE_LATCH_PIN, NUM_LEDS);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//delay({3}{0}{0}); }}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//LED_ResetBits(SCORE_BASE, SCORE_SERIAL_PIN, SCORE_SHIFT_PIN,SCORE_LATCH_PIN,NUM_LEDS);}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{	{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{		on = {1};}}}\par\pard
+\cbpat1{{\cf6{		for(int i = {2}{0}{0};i!={1};i--)\{}}}\par\pard
+\cbpat1{{\cf6{				LED_DoomPattern();}}}\par\pard
+\cbpat1{{\cf6{				delay(i/{2});}}}\par\pard
+\cbpat1{{\cf6{				//printf("Hi");}}}\par\pard
+\cbpat1{{\cf6{		\}}}}\par\pard
+\cbpat1{{\cf6{		//D_GiveInstruction({8}, {1},{0});}}}\par\pard
+\cbpat1{{\cf6{		*/}}{\cf2{}}}\par\pard
+\cbpat1{		{\cf13{for}}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{int}} {\cf2{i}} {\cf11{=}}{\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}{\cf2{i}}{\cf11{<}}{\cf2{}}{\cf4{{8}}}{\cf2{}}{\cf11{;}}{\cf2{i}}{\cf11{++)\{}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b LED_IncrementScore\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}			{\cf16{\b delay\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf4{{2}{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}		}\par\pard
+\cbpat1{	 {\cf16{\b clrScrn\b0 }}{\cf2{}}{\cf11{();}}}\par\pard
+\cbpat1{{\cf2{}}		{\cf5{//LED_ResetBits(SCORE_BASE, SCORE_SERIAL_PIN, SCORE_SHIFT_PIN,SCORE_LATCH_PIN,NUM_LEDS);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#endif}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}}

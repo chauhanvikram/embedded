@@ -1,0 +1,93 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf5{// ADCSWTrigger.h}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Runs on LM{4}F{1}{2}{0}/TM{4}C{1}{2}{3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Provide functions that initialize ADC{0} SS{3} to be triggered by}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// software and trigger a conversion, wait for it to finish,}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// and return the result.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Daniel Valvano}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// September {1}{1}, {2}{0}{1}{3}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/* This example accompanies the book}}}\par\pard
+\cbpat1{{\cf6{   "Embedded Systems: Real Time Interfacing to Arm Cortex M Microcontrollers",}}}\par\pard
+\cbpat1{{\cf6{   ISBN: {9}{7}{8}-{1}{4}{6}{3}{5}{9}{0}{1}{5}{4}, Jonathan Valvano, copyright (c) {2}{0}{1}{3}}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ Copyright {2}{0}{1}{3} by Jonathan W. Valvano, valvano@mail.utexas.edu}}}\par\pard
+\cbpat1{{\cf6{    You may use, edit, run or distribute this file}}}\par\pard
+\cbpat1{{\cf6{    as long as the above copyright notice remains}}}\par\pard
+\cbpat1{{\cf6{ THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED}}}\par\pard
+\cbpat1{{\cf6{ OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF}}}\par\pard
+\cbpat1{{\cf6{ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.}}}\par\pard
+\cbpat1{{\cf6{ VALVANO SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL,}}}\par\pard
+\cbpat1{{\cf6{ OR CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.}}}\par\pard
+\cbpat1{{\cf6{ For more information about my classes, my research, and my books, see}}}\par\pard
+\cbpat1{{\cf6{ http://users.ece.utexas.edu/~valvano/}}}\par\pard
+\cbpat1{{\cf6{ */}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf5{// There are many choices to make when using the ADC, and many}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// different combinations of settings will all do basically the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// same thing.  For simplicity, this function makes some choices}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// for you.  When calling this function, be sure that it does}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// not conflict with any other software that may be running on}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// the microcontroller.  Particularly, ADC{0} sample sequencer {3}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// is used here because it only takes one sample, and only one}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// sample is absolutely needed.  Sample sequencer {3} generates a}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// raw interrupt when the conversion is complete, but it is not}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// promoted to a controller interrupt.  Software triggers the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// ADC{0} conversion and waits for the conversion to finish.  If}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// somewhat precise periodic measurements are required, the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// software trigger can occur in a periodic interrupt.  This}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// approach has the advantage of being simple.  However, it does}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// not guarantee real-time.}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{//}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// A better approach would be to use a hardware timer to trigger}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// the ADC{0} conversion independently from software and generate}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// an interrupt when the conversion is finished.  Then, the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// software can transfer the conversion result to memory and}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// process it after all measurements are complete.}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// This initialization function sets up the ADC according to the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// following parameters.  Any parameters not explicitly listed}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// below are not modified:}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Max sample rate: <={1}{2}{5},{0}{0}{0} samples/second}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {0} priority: {1}st (highest)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {1} priority: {2}nd}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {2} priority: {3}rd}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {3} priority: {4}th (lowest)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} triggering event: software trigger}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} {1}st sample source: Ain{9} (PE{4})}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} interrupts: enabled but not promoted to controller}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b ADC{0}_InitSWTriggerSeq{3}_Ch{9}\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// This initialization function sets up the ADC according to the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// following parameters.  Any parameters not explicitly listed}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// below are not modified:}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Max sample rate: <={1}{2}{5},{0}{0}{0} samples/second}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {0} priority: {1}st (highest)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {1} priority: {2}nd}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {2} priority: {3}rd}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {3} priority: {4}th (lowest)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} triggering event: software trigger}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} {1}st sample source: programmable using variable 'channelNum' [{0}:{7}]}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} interrupts: enabled but not promoted to controller}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b ADC{0}_InitSWTriggerSeq{3}\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{channelNum}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{// This initialization function sets up the ADC according to the}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// following parameters.  Any parameters not explicitly listed}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// below are not modified:}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Max sample rate: <={1}{2}{5},{0}{0}{0} samples/second}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {0} priority: {1}st (highest)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {1} priority: {2}nd}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {2} priority: {3}rd}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Sequencer {3} priority: {4}th (lowest)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} triggering event: always trigger}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} {1}st sample source: programmable using variable 'channelNum' [{0}:{1}{1}]}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// SS{3} interrupts: enabled but not promoted to controller}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{void}} {\cf2{}}{\cf16{\b ADC{0}_InitAllTriggerSeq{3}\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{channelNum}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf5{//------------ADC{0}_InSeq{3}------------}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Busy-wait Analog to digital conversion}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Input: none}}}\par\pard
+\cbpat1{{\cf2{}}{\cf5{// Output: {1}{2}-bit result of ADC conversion}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{uint{3}{2}_t}} {\cf2{}}{\cf16{\b ADC{0}_InSeq{3}\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{);}}{\cf2{}}}\par\pard
+\cbpat1{}}

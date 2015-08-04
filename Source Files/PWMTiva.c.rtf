@@ -1,0 +1,184 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf8{#include <stdint.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include <stdbool.h>}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"inc/hw_memmap.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/sysctl.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/pin_map.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/gpio.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf8{#include}} {\cf9{"driverlib/pwm.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"PWMTiva.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{static uint{3}{2}_t}} {\cf2{ulPeriod{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{3}{2}_t}} {\cf2{ulPeriod{1}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}}  {\cf2{duty{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}}  {\cf2{duty{1}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}}  {\cf2{duty{2}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}{\cf14{static uint{8}_t}}  {\cf2{duty{3}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b PWM_TIVA_Init\b0 }}{\cf2{}}{\cf11{(}}{\cf2{}}{\cf14{void}}{\cf2{}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}    }\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{   {\cf5{//Configure PWM Clock to system / {3}{2}}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b SysCtlPWMClockSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_PWMDIV_{3}{2}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{   {\cf5{// Enable the peripherals used by this program.}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b SysCtlPeripheralEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_PERIPH_GPIOB}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b SysCtlPeripheralEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{SYSCTL_PERIPH_PWM{0}}}{\cf11{);}}  {\cf2{}}{\cf5{//The Tiva Launchpad has two modules ({0} and {1}). Module {1} covers the LED pins}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{// Calculate the period for {5}{0}{0} Hz including divide by {3}{2} in PWM clock}}}\par\pard
+\cbpat1{{\cf2{    ulPeriod{0}}} {\cf11{=}} {\cf2{}}{\cf16{\b SysCtlClockGet\b0 }}{\cf2{}}{\cf11{()/}}{\cf2{}}{\cf4{{3}{2}}} {\cf2{}}{\cf11{/}} {\cf2{}}{\cf4{{5}{0}{0}}}{\cf2{}}{\cf11{;}} {\cf2{}}{\cf5{//PWM frequency {5}{0}{0}HZ}}}\par\pard
+\cbpat1{{\cf2{    ulPeriod{1}}} {\cf11{=}} {\cf2{ulPeriod{0}}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{    {\cf5{//Configure PB{6},PB{7},PB{4}, PB{5} Pins as PWM}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b GPIOPinConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PB{6}_M{0}PWM{0}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b GPIOPinConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PB{7}_M{0}PWM{1}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b GPIOPinConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PB{4}_M{0}PWM{2}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b GPIOPinConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PB{5}_M{0}PWM{3}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b GPIOPinTypePWM\b0 }}{\cf2{}}{\cf11{(}}{\cf2{GPIO_PORTB_BASE}}{\cf11{,}} {\cf2{GPIO_PIN_{4}}} {\cf11{|}} {\cf2{GPIO_PIN_{5}}} {\cf11{|}} {\cf2{GPIO_PIN_{6}}} {\cf11{|}} {\cf2{GPIO_PIN_{7}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//Configure PWM Options}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//PWM_GEN_{0} Covers M{0}PWM{0} and M{0}PWM{1}}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//PWM_GEN_{1} Covers M{0}PWM{2} and M{0}PWM{3} See page {2}{0}{7} {4}/{1}{1}/{1}{3} DriverLib doc}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMGenConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{0}}}{\cf11{,}} {\cf2{PWM_GEN_MODE_UP_DOWN}} {\cf11{|}} {\cf2{PWM_GEN_MODE_NO_SYNC}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMGenConfigure\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{1}}}{\cf11{,}} {\cf2{PWM_GEN_MODE_UP_DOWN}} {\cf11{|}} {\cf2{PWM_GEN_MODE_NO_SYNC}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//Set the Period (expressed in clock ticks)}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMGenPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{0}}}{\cf11{,}} {\cf2{ulPeriod{0}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMGenPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{1}}}{\cf11{,}} {\cf2{ulPeriod{1}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{//Set PWM duty to {0} initially}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{,}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{// Enable the PWM generator}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMGenEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{0}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMGenEnable\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{1}}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{    {\cf5{// Turn on the Output pins}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMOutputState\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{0}_BIT}} {\cf11{|}} {\cf2{PWM_OUT_{1}_BIT}} {\cf11{|}} {\cf2{PWM_OUT_{2}_BIT}} {\cf11{|}} {\cf2{PWM_OUT_{3}_BIT}}{\cf11{,}} {\cf2{}}{\cf13{true}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{dutyCycle}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{channel}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf14{uint{3}{2}_t}} {\cf2{updateVal}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  }\par\pard
+\cbpat1{  {\cf13{if}} {\cf2{}}{\cf11{((}}{\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{==}} {\cf2{dutyCycle}}{\cf11{) || (}} {\cf2{dutyCycle}} {\cf11{>=}} {\cf2{}}{\cf4{{1}{0}{0}}}{\cf2{}}{\cf11{))\{}} {\cf2{}}{\cf5{// don't try to calculate with {0} DC}}}\par\pard
+\cbpat1{{\cf2{    updateVal}} {\cf11{=}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}} {\cf2{}}{\cf5{// reasonable duty cycle number}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}}{\cf2{channel}} {\cf11{<}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{)\{}} {\cf2{}}{\cf5{// group {0}}}}\par\pard
+\cbpat1{{\cf2{      updateVal}} {\cf11{= (}}{\cf2{ulPeriod{0}}}{\cf11{*}}{\cf2{dutyCycle}}{\cf11{)/}}{\cf2{}}{\cf4{{1}{0}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{      updateVal}} {\cf11{= (}}{\cf2{ulPeriod{1}}}{\cf11{*}}{\cf2{dutyCycle}}{\cf11{)/}}{\cf2{}}{\cf4{{1}{0}{0}}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{switch}} {\cf2{}}{\cf11{(}}{\cf2{channel}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{case}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{    duty{0}}} {\cf11{=}} {\cf2{dutyCycle}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}    {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{0}}}{\cf11{,}}{\cf2{updateVal}}{\cf11{);}}     }\par\pard
+\cbpat1{{\cf2{}}    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    }\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{     duty{1}}} {\cf11{=}} {\cf2{dutyCycle}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}     {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{1}}}{\cf11{,}}{\cf2{updateVal}}{\cf11{);}}     }\par\pard
+\cbpat1{{\cf2{}}      }\par\pard
+\cbpat1{    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    }\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{     duty{2}}} {\cf11{=}} {\cf2{dutyCycle}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}     {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{2}}}{\cf11{,}}{\cf2{updateVal}}{\cf11{);}}     }\par\pard
+\cbpat1{{\cf2{}}      }\par\pard
+\cbpat1{    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    }\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{     duty{3}}} {\cf11{=}} {\cf2{dutyCycle}}{\cf11{;}} }\par\pard
+\cbpat1{{\cf2{}}     {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{3}}}{\cf11{,}}{\cf2{updateVal}}{\cf11{);}}     }\par\pard
+\cbpat1{{\cf2{}}      }\par\pard
+\cbpat1{    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b PWM_TIVA_SetPulseWidth\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{NewPW}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{channel}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}   }\par\pard
+\cbpat1{  {\cf13{switch}} {\cf2{}}{\cf11{(}}{\cf2{channel}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{case}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{NewPW}} {\cf11{<}} {\cf2{ulPeriod{0}}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{0}}}{\cf11{,}}{\cf2{NewPW}}{\cf11{);}}     }\par\pard
+\cbpat1{{\cf2{}}    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    }\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}     {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{NewPW}} {\cf11{<}} {\cf2{ulPeriod{0}}}{\cf11{)}} }\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{1}}}{\cf11{,}}{\cf2{NewPW}}{\cf11{);}}          }\par\pard
+\cbpat1{{\cf2{}}    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    }\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}     {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{NewPW}} {\cf11{<}} {\cf2{ulPeriod{1}}}{\cf11{)}} }\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{2}}}{\cf11{,}}{\cf2{NewPW}}{\cf11{);}}           }\par\pard
+\cbpat1{{\cf2{}}    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}    }\par\pard
+\cbpat1{    {\cf13{case}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{:}}}\par\pard
+\cbpat1{{\cf2{}}     {\cf13{if}} {\cf2{}}{\cf11{(}} {\cf2{NewPW}} {\cf11{<}} {\cf2{ulPeriod{1}}}{\cf11{)}} }\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWMPulseWidthSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_OUT_{3}}}{\cf11{,}}{\cf2{NewPW}}{\cf11{);}}           }\par\pard
+\cbpat1{{\cf2{}}    {\cf13{break}}{\cf2{}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{  PWM_TIVA_SetPeriod( uint{1}{6}_t reqPeriod, uint{8}_t group)}}}\par\pard
+\cbpat1{{\cf6{    sets the requested PWM group's period to the Requested Period}}}\par\pard
+\cbpat1{{\cf6{    group {0} = channels {0} & {1}}}}\par\pard
+\cbpat1{{\cf6{    group {2} = channels {2} & {3}}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b PWM_TIVA_SetPeriod\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{reqPeriod}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{group}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//Set the Period (expressed in clock ticks)}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{==}} {\cf2{group}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{   ulPeriod{0}}} {\cf11{=}} {\cf2{reqPeriod}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b PWMGenPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{0}}}{\cf11{,}} {\cf2{ulPeriod{0}}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{0}}}{\cf11{,}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{1}}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{==}} {\cf2{group}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{      ulPeriod{1}}} {\cf11{=}} {\cf2{reqPeriod}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWMGenPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{1}}}{\cf11{,}} {\cf2{ulPeriod{1}}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{2}}}{\cf11{,}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{3}}}{\cf11{,}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      }\par\pard
+\cbpat1{    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{ {\cf6{/*****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{  PWM_TIVA_SetFreq( uint{1}{6}_t reqPeriod, uint{8}_t group)}}}\par\pard
+\cbpat1{{\cf6{    sets the requested PWM group's frequency to the Requested Frequency, in Hz}}}\par\pard
+\cbpat1{{\cf6{    group {0} = channels {0} & {1}}}}\par\pard
+\cbpat1{{\cf6{    group {2} = channels {2} & {3}}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{}\par\pard
+\cbpat1{{\cf14{void}} {\cf2{}}{\cf16{\b PWM_TIVA_SetFreq\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{reqFreq}}{\cf11{,}} {\cf2{}}{\cf14{uint{8}_t}} {\cf2{group}}{\cf11{)}}}\par\pard
+\cbpat1{{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf5{//Set the Frequency (expressed in Hz)}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf13{if}}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{0}}} {\cf2{}}{\cf11{==}} {\cf2{group}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{   ulPeriod{0}}} {\cf11{=}} {\cf2{}}{\cf16{\b SysCtlClockGet\b0 }}{\cf2{}}{\cf11{()/}}{\cf2{}}{\cf4{{3}{2}}} {\cf2{}}{\cf11{/}}{\cf2{reqFreq}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b PWMGenPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{0}}}{\cf11{,}} {\cf2{ulPeriod{0}}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{0}}}{\cf11{,}} {\cf2{}}{\cf4{{0}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}   {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{1}}}{\cf11{,}} {\cf2{}}{\cf4{{1}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}{\cf2{}}{\cf13{else}}{\cf2{}}{\cf11{\{}}}\par\pard
+\cbpat1{{\cf2{}}    {\cf13{if}}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf4{{1}}} {\cf2{}}{\cf11{==}} {\cf2{group}}{\cf11{)\{}}}\par\pard
+\cbpat1{{\cf2{      ulPeriod{1}}} {\cf11{=}} {\cf2{}}{\cf16{\b SysCtlClockGet\b0 }}{\cf2{}}{\cf11{()/}}{\cf2{}}{\cf4{{3}{2}}} {\cf2{}}{\cf11{/}}{\cf2{reqFreq}}{\cf11{;}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWMGenPeriodSet\b0 }}{\cf2{}}{\cf11{(}}{\cf2{PWM{0}_BASE}}{\cf11{,}} {\cf2{PWM_GEN_{1}}}{\cf11{,}} {\cf2{ulPeriod{1}}}{\cf11{);}} }\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{2}}}{\cf11{,}} {\cf2{}}{\cf4{{2}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}      {\cf16{\b PWM_TIVA_SetDuty\b0 }}{\cf2{}}{\cf11{(}} {\cf2{duty{3}}}{\cf11{,}} {\cf2{}}{\cf4{{3}}}{\cf2{}}{\cf11{);}}}\par\pard
+\cbpat1{{\cf2{}}     }\par\pard
+\cbpat1{    {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}  {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}} {\cf11{\}}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{}}

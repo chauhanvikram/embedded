@@ -1,0 +1,66 @@
+{\rtf1\ansi\uc0 \deff1{\fonttbl{\f1\fmodern\fprq1\fcharset0 Courier New;}}{\colortbl;\red255\green255\blue255;\red58\green57\blue53;\red255\green00\blue255;\red255\green00\blue255;\red00\green60\blue255;\red00\green60\blue255;\red255\green00\blue255;\red160\green32\blue240;\red255\green00\blue255;\red60\green59\blue55;\red58\green57\blue53;\red255\green00\blue255;\red165\green42\blue53;\red46\green139\blue87;\red87\green46\blue140;\red58\green57\blue53;}
+\paperw11905\paperh16837\margl1134\margr1134\margt1134\margb1134\sectd\plain\f1\fs20
+\pard \cbpat1{{\cf2{}}{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Module}}}\par\pard
+\cbpat1{{\cf6{     ES_LookupTables.h}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{     Extern declarations for a set of constant lookup tables that are used in}}}\par\pard
+\cbpat1{{\cf6{     multiple places in the framework and beyond. }}}\par\pard
+\cbpat1{{\cf6{     }}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{     As a rule, I don't approve of global variables for a host of reasons.}}}\par\pard
+\cbpat1{{\cf6{     In this case I decided to make them global in the interests of}}}\par\pard
+\cbpat1{{\cf6{     efficiency. These tables will be references very often in the timer}}}\par\pard
+\cbpat1{{\cf6{     functions (as often as {8} times/ms) and on every pass through the event}}}\par\pard
+\cbpat1{{\cf6{     scheduler/dispatcher. As a result I decided to simply make them global.}}}\par\pard
+\cbpat1{{\cf6{     Since they are constant, they are not subject to the multiple access}}}\par\pard
+\cbpat1{{\cf6{     point issues associated with modifiable global variables.}}}\par\pard
+\cbpat1{{\cf6{}}}\par\pard
+\cbpat1{{\cf6{ History}}}\par\pard
+\cbpat1{{\cf6{ When           Who     What/Why}}}\par\pard
+\cbpat1{{\cf6{ -------------- ---     --------}}}\par\pard
+\cbpat1{{\cf6{ {1}{0}/{2}{0}/{1}{3} {2}{1}:{1}{9} jec      got rid of BitNum{2}ClrMask and replaced with #define}}}\par\pard
+\cbpat1{{\cf6{                         replaced Byte{2}MSBNum with function ES_GetMSBSet}}}\par\pard
+\cbpat1{{\cf6{                         replaced Byte{2}MSBNum array with Nybble{2}MSBNum}}}\par\pard
+\cbpat1{{\cf6{ {0}{8}/{0}{5}/{1}{3} {1}{5}:{4}{5} jec      added #include for ES_Types.h since we depend on it}}}\par\pard
+\cbpat1{{\cf6{ {0}{1}/{1}{5}/{1}{2} {1}{3}:{0}{3} jec      started coding}}}\par\pard
+\cbpat1{{\cf6{*****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#include}} {\cf9{"ES_Types.h"}}{\cf8{}}}\par\pard
+\cbpat1{{\cf2{}}{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{  Since we moved up to {1}{6} timers & services, this table got too big to justify}}}\par\pard
+\cbpat1{{\cf6{  having a separate table for the clear and set masks, so just #define the}}}\par\pard
+\cbpat1{{\cf6{  tilde operator in to keep the readability}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf8{#define BitNum{2}ClrMask ~BitNum{2}SetMask}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{  this table is used to go from a bit number ({0}-{7}) to the mask used to set}}}\par\pard
+\cbpat1{{\cf6{  that bit in a byte.}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf15{extern}} {\cf2{}}{\cf14{uint{1}{6}_t const}} {\cf2{BitNum{2}SetMask}}{\cf11{[];}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/*}}}\par\pard
+\cbpat1{{\cf6{  this table is used to go from an unsigned {4}bit value to the most significant}}}\par\pard
+\cbpat1{{\cf6{  bit that is set in that nybble. It is used in the determination of priorities}}}\par\pard
+\cbpat1{{\cf6{  from the Ready variable and in determining active timers in }}}\par\pard
+\cbpat1{{\cf6{  the timer interrupt response. Index into the array with (ByteVal-{1}) to get }}}\par\pard
+\cbpat1{{\cf6{  the correct MS Bit num.}}}\par\pard
+\cbpat1{{\cf6{*/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf15{extern}} {\cf2{}}{\cf14{uint{8}_t const}} {\cf2{Nybble{2}MSBitNum}}{\cf11{[}}{\cf2{}}{\cf4{{1}{5}}}{\cf2{}}{\cf11{];}}}\par\pard
+\cbpat1{{\cf2{}}}\par\pard
+\cbpat1{{\cf6{/****************************************************************************}}}\par\pard
+\cbpat1{{\cf6{ Function}}}\par\pard
+\cbpat1{{\cf6{   ES_GetMSBSet}}}\par\pard
+\cbpat1{{\cf6{ Parameters}}}\par\pard
+\cbpat1{{\cf6{   uint{1}{6}_t  Val{2}Check The number to find the MSB in}}}\par\pard
+\cbpat1{{\cf6{ Returns}}}\par\pard
+\cbpat1{{\cf6{   bit number of the MSB that is set in Val{2}Check, {1}{2}{8} if Val{2}Check = {0}}}}\par\pard
+\cbpat1{{\cf6{ Description}}}\par\pard
+\cbpat1{{\cf6{   find the MSB that is set in Val{2}Check and returns that bit number}}}\par\pard
+\cbpat1{{\cf6{ Notes}}}\par\pard
+\cbpat1{{\cf6{   }}}\par\pard
+\cbpat1{{\cf6{ Author}}}\par\pard
+\cbpat1{{\cf6{   J. Edward Carryer, {1}{0}/{2}{0}/{1}{3}, {1}{7}:{0}{3}}}}\par\pard
+\cbpat1{{\cf6{****************************************************************************/}}{\cf2{}}}\par\pard
+\cbpat1{{\cf14{uint{8}_t}} {\cf2{}}{\cf16{\b ES_GetMSBitSet\b0 }}{\cf2{}}{\cf11{(}} {\cf2{}}{\cf14{uint{1}{6}_t}} {\cf2{Val{2}Check}}{\cf11{);}}{\cf2{}}}\par\pard
+\cbpat1{}}
